@@ -134,4 +134,4 @@ private:
   StyleHeap& heap_;
 };
 
-} // 命名空间 style
+} // namespace style

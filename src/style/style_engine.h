@@ -64,4 +64,4 @@ private:
   bool hasObservedStylesheetCount_ = false;
 };
 
-} // 命名空间 style
+} // namespace style

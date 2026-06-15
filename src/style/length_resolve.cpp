@@ -8,7 +8,7 @@ namespace style {
 namespace {
 // CSS 参考像素：96px == 1in。
 constexpr float kPxPerIn = 96.0f;
-} // 匿名命名空间
+} // namespace
 
 float resolveLengthPx(const lxb_css_value_length_t& len, const ResolveContext& ctx,
                       bool forFontSize) {
@@ -89,4 +89,4 @@ LengthValue resolveLengthPercentage(const lxb_css_value_length_percentage_t& lp,
   }
 }
 
-} // 命名空间 style
+} // namespace style

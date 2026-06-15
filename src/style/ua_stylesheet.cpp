@@ -52,7 +52,7 @@ td, th { padding: 1px; }
 th { font-weight: bold; }
 )CSS";
 
-} // 匿名命名空间
+} // namespace
 
 const char* uaStylesheetSource() {
   return kUaCss;
@@ -78,4 +78,4 @@ bool attachUaStylesheet(lxb_html_document_t* doc, lxb_css_parser_t* parser) {
   return lxb_html_document_stylesheet_attach(doc, sst) == LXB_STATUS_OK;
 }
 
-} // 命名空间 style
+} // namespace style

@@ -43,4 +43,4 @@ void StyleHeap::destroyPhase(DestructorPhase phase) noexcept {
   }
 }
 
-} // 命名空间 style
+} // namespace style

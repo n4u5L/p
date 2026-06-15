@@ -110,4 +110,4 @@ private:
   ResolveContext rootCtx_;
 };
 
-} // 命名空间 style
+} // namespace style

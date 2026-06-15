@@ -60,4 +60,4 @@ inline bool isInherited(uint16_t id) {
 bool isColorProperty(uint16_t id);  // 值里可能包含 currentColor。
 bool isLengthProperty(uint16_t id); // 值大致属于 <length-percentage>。
 
-} // 命名空间 style
+} // namespace style

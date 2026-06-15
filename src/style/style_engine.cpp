@@ -125,7 +125,7 @@ void StyleEngine::syncStylesheets() {
     auto* stylesheet = static_cast<lxb_css_stylesheet_t*>(
         lexbor_array_get(document_->css->stylesheets, i));
     if (stylesheet != nullptr) {
-      (void) lxb_dom_document_stylesheet_apply(document_, stylesheet);
+      (void)lxb_dom_document_stylesheet_apply(document_, stylesheet);
     }
   }
 
@@ -155,4 +155,4 @@ size_t StyleEngine::stylesheetCount() const {
   return lexbor_array_length(document_->css->stylesheets);
 }
 
-} // 命名空间 style
+} // namespace style

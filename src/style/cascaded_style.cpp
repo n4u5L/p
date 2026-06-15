@@ -80,7 +80,7 @@ lxb_status_t walkStyle(lxb_dom_element_t*,
   return LXB_STATUS_OK;
 }
 
-} // 匿名命名空间
+} // namespace
 
 CascadedStyle CascadedStyleNormalizer::collect(lxb_dom_element_t* element) const {
   CascadedStyle style;
@@ -93,4 +93,4 @@ CascadedStyle CascadedStyleNormalizer::collect(lxb_dom_element_t* element) const
   return style;
 }
 
-} // 命名空间 style
+} // namespace style

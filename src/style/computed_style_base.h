@@ -406,4 +406,4 @@ private:
   DataRef<StyleVisualData> visualData_;
 };
 
-} // 命名空间 style
+} // namespace style

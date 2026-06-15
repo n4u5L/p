@@ -427,7 +427,7 @@ void expandFourSides(const lxb_css_value_length_percentage_t* input[4],
   output[kLeft] = count >= 4 ? input[kLeft] : output[kRight];
 }
 
-} // 匿名命名空间
+} // namespace
 
 enum NodeStateFlag : uint8_t {
   kNodeSelfDirty = 1 << 0,
@@ -1279,4 +1279,4 @@ void StyleResolver::markChildDirtyAncestors(lxb_dom_node_t* node) {
   }
 }
 
-} // 命名空间 style
+} // namespace style

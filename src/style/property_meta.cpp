@@ -160,7 +160,7 @@ const Table& table() {
   return t;
 }
 
-} // 匿名命名空间
+} // namespace
 
 size_t propertyCount() {
   return kCount;
@@ -225,4 +225,4 @@ bool isLengthProperty(uint16_t id) {
   }
 }
 
-} // 命名空间 style
+} // namespace style

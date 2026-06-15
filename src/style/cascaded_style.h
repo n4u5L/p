@@ -62,4 +62,4 @@ public:
   CascadedStyle collect(lxb_dom_element_t* element) const;
 };
 
-} // 命名空间 style
+} // namespace style

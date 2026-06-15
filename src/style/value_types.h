@@ -145,4 +145,4 @@ struct BorderEdge {
   }
 };
 
-} // 命名空间 style
+} // namespace style

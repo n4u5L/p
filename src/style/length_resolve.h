@@ -45,4 +45,4 @@ float resolveLengthPx(const lxb_css_value_length_t& len, const ResolveContext& c
 LengthValue resolveLengthPercentage(const lxb_css_value_length_percentage_t& lp,
                                     const ResolveContext& ctx);
 
-} // 命名空间 style
+} // namespace style

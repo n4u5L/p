@@ -26,4 +26,4 @@ size_t uaStylesheetLength();
 // 必须在 author stylesheet attach 前调用；成功返回 true。
 bool attachUaStylesheet(lxb_html_document_t* doc, lxb_css_parser_t* parser);
 
-} // 命名空间 style
+} // namespace style

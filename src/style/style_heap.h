@@ -78,4 +78,4 @@ private:
   std::vector<Destructor> destructors_;
 };
 
-} // 命名空间 style
+} // namespace style
