@@ -1,0 +1,8 @@
+.cache
+build
+.vscode
+temp
+a.patch
+AGENTS.md
+out
+.codex
