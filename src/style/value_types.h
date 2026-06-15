@@ -1,32 +1,36 @@
 #pragma once
 
-// Self-built style engine — computed value types.
+// 自建样式引擎的 computed value 类型。
 //
-// These are the *computed value* representations handed to layout. They are
-// deliberately independent of lexbor's parse-time typed structs: the resolver
-// (resolver.cpp) translates lexbor declared values into these.
+// 这些结构是 resolver 交给 layout 的 computed value 表示。它们有意与 lexbor
+// 解析阶段的 typed struct 分离：resolver.cpp 负责把 lexbor declaration 转成这里的
+// 运行时结构。
 //
-// Key invariant: computed != used. Percentages, `auto`, and unresolved calc()
-// terms are preserved here as undecided; layout resolves them against a
-// containing block (the "used value" stage).
+// 核心不变量：computed value != used value。百分比、auto、以及后续 calc() 里的
+// 未决项必须保留到 layout 阶段，再结合包含块求 used value。
+//
+// 易错点：不要把这里简化成裸 float。那会丢掉 percent/auto/calc 的状态，
+// 后续布局无法判断“未决”和“已解析 px”的区别。
 
 #include <cstdint>
 #include <cstring>
 
+#include "lexbor/css/property/const.h"
+
 namespace style {
 
-// Forward decl — full definition in calc.h (filled in milestone M3).
+// 前置声明；完整 calc 表达式计划在 M3 补齐。
 struct CalcExpr;
 
 // ---------------------------------------------------------------------------
-// Color: always concrete (RGBA8) after resolution. `currentColor` and color
-// keywords are resolved away by the resolver; layout/paint never sees them.
+// Color：解析后总是具体 RGBA8。currentColor 和颜色关键字由 resolver 消解，
+// layout/paint 不再看到它们。
 // ---------------------------------------------------------------------------
 struct Color {
   uint8_t r = 0;
   uint8_t g = 0;
   uint8_t b = 0;
-  uint8_t a = 0; // 0 = fully transparent, 255 = opaque
+  uint8_t a = 0; // 0 表示完全透明，255 表示不透明。
 
   constexpr Color() = default;
   constexpr Color(uint8_t r_, uint8_t g_, uint8_t b_, uint8_t a_ = 255)
@@ -52,25 +56,24 @@ struct Color {
 };
 
 // ---------------------------------------------------------------------------
-// LengthValue: the computed value of a <length-percentage>-typed property
-// (width/height/margin/padding/inset/...).
+// LengthValue：<length-percentage> 属性的 computed value，
+// 例如 width/height/margin/padding/inset。
 //
-// The whole point of carrying a tagged variant — rather than a bare float — is
-// that `Percent`/`Auto`/`Calc` are honestly *undecided* at computed time and
-// must survive into layout. Px is the only fully-resolved state.
+// 使用 tag 而不是裸 float 的原因是：Percent/Auto/Calc 在 computed 阶段确实还没
+// 决定，必须保留到 layout。只有 Px 是完全解析后的状态。
 // ---------------------------------------------------------------------------
 struct LengthValue {
   enum class Tag : uint8_t {
-    Px,      // resolved absolute pixels
-    Percent, // percentage (0..100 == 0%..100%), base unknown until layout
-    Auto,    // the `auto` keyword
-    Calc,    // calc()/clamp()/min()/max() carrying %/relative terms; see `calc`
-    None     // the `none` keyword (e.g. max-width:none)
+    Px,      // 已解析的绝对像素。
+    Percent, // 百分比；0..100 对应 0%..100%，基准要等 layout。
+    Auto,    // auto 关键字。
+    Calc,    // calc()/clamp()/min()/max()；可能携带百分比或相对项。
+    None     // none 关键字，例如 max-width:none。
   };
 
   Tag tag = Tag::Auto;
-  float px = 0.0f;                // valid when tag == Px, or as Percent's number
-  const CalcExpr* calc = nullptr; // valid when tag == Calc (arena-owned)
+  float px = 0.0f;                // tag == Px 时是 px；tag == Percent 时是百分比数值。
+  const CalcExpr* calc = nullptr; // tag == Calc 时有效，由 arena 持有。
 
   constexpr LengthValue() = default;
 
@@ -122,101 +125,17 @@ struct LengthValue {
   }
 };
 
-// ---------------------------------------------------------------------------
-// Keyword-valued enums. Values are our own; the resolver maps lexbor's enums
-// onto these. Kept compact (uint8) so the group structs pack tightly.
-// ---------------------------------------------------------------------------
-enum class Display : uint8_t {
-  Inline,
-  Block,
-  InlineBlock,
-  Flex,
-  InlineFlex,
-  ListItem,
-  Table,
-  TableRow,
-  TableCell,
-  None
-};
-
-enum class Position : uint8_t { Static,
-                                Relative,
-                                Absolute,
-                                Fixed,
-                                Sticky };
-
-enum class BoxSizing : uint8_t { ContentBox,
-                                 BorderBox };
-
-enum class Float : uint8_t { None,
-                             Left,
-                             Right };
-
-enum class Clear : uint8_t { None,
-                             Left,
-                             Right,
-                             Both };
-
-enum class Overflow : uint8_t { Visible,
-                                Hidden,
-                                Scroll,
-                                Auto,
-                                Clip };
-
-enum class Visibility : uint8_t { Visible,
-                                  Hidden,
-                                  Collapse };
-
-enum class Direction : uint8_t { Ltr,
-                                 Rtl };
-
-enum class WritingMode : uint8_t {
-  HorizontalTb,
-  VerticalRl,
-  VerticalLr
-};
-
-enum class TextAlign : uint8_t { Start,
-                                 End,
-                                 Left,
-                                 Right,
-                                 Center,
-                                 Justify };
-
-enum class WhiteSpace : uint8_t { Normal,
-                                  Pre,
-                                  Nowrap,
-                                  PreWrap,
-                                  PreLine };
-
-enum class FontStyle : uint8_t { Normal,
-                                 Italic,
-                                 Oblique };
-
-enum class BorderStyle : uint8_t {
-  None,
-  Hidden,
-  Dotted,
-  Dashed,
-  Solid,
-  Double,
-  Groove,
-  Ridge,
-  Inset,
-  Outset
-};
-
-// Physical side indices for TRBL arrays. Logical sides are mapped onto these
-// by the resolver using writing-mode + direction.
+// 物理边索引，用于 TRBL 数组。逻辑边由 resolver 根据 writing-mode + direction
+// 映射到这些物理边。
 enum Side : uint8_t { kTop = 0,
                       kRight = 1,
                       kBottom = 2,
                       kLeft = 3 };
 
 struct BorderEdge {
-  LengthValue width = LengthValue::makePx(0.0f); // computed; `thin/medium/thick` resolved
-  BorderStyle styleKind = BorderStyle::None;
-  Color color = Color::black(); // currentColor resolved away
+  LengthValue width = LengthValue::makePx(0.0f); // computed；thin/medium/thick 已解析。
+  lxb_css_border_type_t styleKind = LXB_CSS_BORDER_NONE;
+  Color color = Color::black(); // currentColor 已解析成具体颜色。
 
   bool operator==(const BorderEdge& o) const {
     return width == o.width && styleKind == o.styleKind && color == o.color;
@@ -226,4 +145,4 @@ struct BorderEdge {
   }
 };
 
-} // namespace style
+} // 命名空间 style

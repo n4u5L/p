@@ -6,6 +6,16 @@
 #include "lexbor/css/rule.h"
 #include "lexbor/css/selectors/selector.h"
 
+// CascadedStyle 是 resolver 前面的轻量归一化层。
+// lexbor 已经完成 selector matching 和 declaration 挂接，这里只把元素上胜出的
+// declaration 收集成 canonical longhand -> declaration 的表。
+//
+// 易错点：
+// - declaration 指针仍归 lexbor stylesheet 所有，这里不能释放，也不要复制 CSS 值。
+// - shorthand 只展开到本项目当前需要的 canonical longhand；缺项要显式 TODO 补。
+// - 继续使用 lexbor 的 property id，避免再做一层 enum map。
+// TODO：为低内存目标，后续可把 unordered_map 换成小数组/排序向量或 arena 分配容器。
+
 typedef struct lxb_dom_element lxb_dom_element_t;
 
 namespace style {
@@ -52,4 +62,4 @@ public:
   CascadedStyle collect(lxb_dom_element_t* element) const;
 };
 
-} // namespace style
+} // 命名空间 style

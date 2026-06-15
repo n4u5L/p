@@ -1,11 +1,14 @@
 #pragma once
 
-// ComputedStyle is the resolver output consumed by layout.
+// ComputedStyle 是 resolver 输出给 layout 的样式对象。
 //
-// The split mirrors Blink's architecture:
-//   * ComputedStyleBase owns dense computed-value storage and base accessors.
-//   * ComputedStyle adds high-level inheritance/diff/custom-property behavior.
-//   * ComputedStyleBuilder is the resolver-only write interface.
+// 拆分方式参考 Blink：
+//   * ComputedStyleBase 持有密集 computed-value 存储和基础访问器。
+//   * ComputedStyle 放继承、diff、自定义属性等高层行为。
+//   * ComputedStyleBuilder 是 resolver 专用的写接口。
+//
+// TODO：custom properties 目前仍用 std::unordered_map，后续可按项目目标改成
+// Lexbor/StyleHeap 友好的低内存结构。
 
 #include <string>
 #include <unordered_map>
@@ -131,4 +134,4 @@ private:
   StyleHeap& heap_;
 };
 
-} // namespace style
+} // 命名空间 style

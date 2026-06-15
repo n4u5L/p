@@ -13,6 +13,8 @@ struct WalkContext {
   CascadedStyle* style = nullptr;
 };
 
+// 把源 declaration 按 canonical property id 放入表中。
+// sourceProperty 保留原始属性，方便 resolver 知道它来自 shorthand 还是 longhand。
 void addDeclaration(CascadedStyle& style,
                     const lxb_css_rule_declaration_t* declaration,
                     lxb_css_selector_specificity_t specificity,
@@ -21,6 +23,7 @@ void addDeclaration(CascadedStyle& style,
             CascadedDeclaration{declaration, specificity, static_cast<uint16_t>(declaration->type)});
 }
 
+// 四边 shorthand 的 M1 展开路径；实际值展开仍在 resolver 中按 CSS 四值规则处理。
 void addExpanded(CascadedStyle& style, const lxb_css_rule_declaration_t* declaration,
                  lxb_css_selector_specificity_t specificity, uint16_t top,
                  uint16_t right, uint16_t bottom, uint16_t left) {
@@ -30,6 +33,7 @@ void addExpanded(CascadedStyle& style, const lxb_css_rule_declaration_t* declara
   addDeclaration(style, declaration, specificity, left);
 }
 
+// border shorthand 先映射到物理边，具体 width/style/color 后续由 resolver 拆。
 void addBorderEdge(CascadedStyle& style,
                    const lxb_css_rule_declaration_t* declaration,
                    lxb_css_selector_specificity_t specificity,
@@ -37,6 +41,8 @@ void addBorderEdge(CascadedStyle& style,
   addDeclaration(style, declaration, specificity, edgeId);
 }
 
+// 将 lexbor property id 归一到 resolver 要读取的 canonical id。
+// TODO：补齐更多 shorthand 时优先在这里扩展，不要在 resolver 里到处特判。
 void addCanonical(CascadedStyle& style,
                   const lxb_css_rule_declaration_t* declaration,
                   lxb_css_selector_specificity_t specificity) {
@@ -74,7 +80,7 @@ lxb_status_t walkStyle(lxb_dom_element_t*,
   return LXB_STATUS_OK;
 }
 
-} // namespace
+} // 匿名命名空间
 
 CascadedStyle CascadedStyleNormalizer::collect(lxb_dom_element_t* element) const {
   CascadedStyle style;
@@ -87,4 +93,4 @@ CascadedStyle CascadedStyleNormalizer::collect(lxb_dom_element_t* element) const
   return style;
 }
 
-} // namespace style
+} // 命名空间 style

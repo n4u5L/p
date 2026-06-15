@@ -1,7 +1,10 @@
 #include "resolver.h"
 
+#include <new>
+
 #include "property_meta.h"
 
+#include "lexbor/core/dobject.h"
 #include "lexbor/dom/interface.h"
 #include "lexbor/dom/interfaces/document.h"
 #include "lexbor/dom/interfaces/element.h"
@@ -43,8 +46,9 @@ bool isUnsetSide(const lxb_css_value_length_percentage_t& lp) {
   return lp.type == LXB_CSS_VALUE__UNDEF;
 }
 
-// Fetch the typed value pointer for canonical property `id`, or nullptr if no
-// declaration won the cascade for it. All union members alias `u.user`.
+// 取 canonical property `id` 对应的 typed value。
+// 如果没有声明在级联中胜出，则返回 nullptr。
+// 易错点：lexbor 的 declaration union 成员最终都别名到 u.user。
 template <class T>
 const T* declared(const CascadedStyle& cascaded, uint16_t id) {
   return cascaded.value<T>(id);
@@ -107,172 +111,6 @@ const lxb_css_value_length_percentage_t* declaredLength(
   }
 }
 
-// --- enum mappers (lexbor value id → our compact enum) ---------------------
-
-Display mapDisplay(lxb_css_display_type_t a) {
-  switch (a) {
-  case LXB_CSS_DISPLAY_BLOCK:
-    return Display::Block;
-  case LXB_CSS_DISPLAY_INLINE:
-    return Display::Inline;
-  case LXB_CSS_DISPLAY_INLINE_BLOCK:
-    return Display::InlineBlock;
-  case LXB_CSS_DISPLAY_FLEX:
-    return Display::Flex;
-  case LXB_CSS_DISPLAY_INLINE_FLEX:
-    return Display::InlineFlex;
-  case LXB_CSS_DISPLAY_LIST_ITEM:
-    return Display::ListItem;
-  case LXB_CSS_DISPLAY_TABLE:
-    return Display::Table;
-  case LXB_CSS_DISPLAY_TABLE_ROW:
-    return Display::TableRow;
-  case LXB_CSS_DISPLAY_TABLE_CELL:
-    return Display::TableCell;
-  case LXB_CSS_DISPLAY_NONE:
-    return Display::None;
-  default:
-    return Display::Inline;
-  }
-}
-
-Position mapPosition(lxb_css_position_type_t t) {
-  switch (t) {
-  case LXB_CSS_POSITION_RELATIVE:
-    return Position::Relative;
-  case LXB_CSS_POSITION_ABSOLUTE:
-    return Position::Absolute;
-  case LXB_CSS_POSITION_FIXED:
-    return Position::Fixed;
-  case LXB_CSS_POSITION_STICKY:
-    return Position::Sticky;
-  default:
-    return Position::Static;
-  }
-}
-
-Visibility mapVisibility(lxb_css_visibility_type_t t) {
-  switch (t) {
-  case LXB_CSS_VISIBILITY_HIDDEN:
-    return Visibility::Hidden;
-  case LXB_CSS_VISIBILITY_COLLAPSE:
-    return Visibility::Collapse;
-  default:
-    return Visibility::Visible;
-  }
-}
-
-BoxSizing mapBoxSizing(lxb_css_box_sizing_type_t t) {
-  return t == LXB_CSS_BOX_SIZING_BORDER_BOX ? BoxSizing::BorderBox
-                                            : BoxSizing::ContentBox;
-}
-
-Float mapFloat(lxb_css_float_type_t t) {
-  switch (t) {
-  case LXB_CSS_FLOAT_LEFT:
-    return Float::Left;
-  case LXB_CSS_FLOAT_RIGHT:
-    return Float::Right;
-  default:
-    return Float::None;
-  }
-}
-
-Clear mapClear(lxb_css_clear_type_t t) {
-  switch (t) {
-  case LXB_CSS_CLEAR_LEFT:
-  case LXB_CSS_CLEAR_INLINE_START:
-  case LXB_CSS_CLEAR_BLOCK_START:
-    return Clear::Left;
-  case LXB_CSS_CLEAR_RIGHT:
-  case LXB_CSS_CLEAR_INLINE_END:
-  case LXB_CSS_CLEAR_BLOCK_END:
-    return Clear::Right;
-  case LXB_CSS_CLEAR_TOP:
-  case LXB_CSS_CLEAR_BOTTOM:
-    return Clear::Both;
-  default:
-    return Clear::None;
-  }
-}
-
-Direction mapDirection(lxb_css_direction_type_t t) {
-  return t == LXB_CSS_DIRECTION_RTL ? Direction::Rtl : Direction::Ltr;
-}
-
-WritingMode mapWritingMode(lxb_css_writing_mode_type_t t) {
-  switch (t) {
-  case LXB_CSS_WRITING_MODE_VERTICAL_RL:
-    return WritingMode::VerticalRl;
-  case LXB_CSS_WRITING_MODE_VERTICAL_LR:
-    return WritingMode::VerticalLr;
-  default:
-    return WritingMode::HorizontalTb;
-  }
-}
-
-Overflow mapOverflow(lxb_css_overflow_x_type_t t) {
-  switch (t) {
-  case LXB_CSS_OVERFLOW_X_HIDDEN:
-    return Overflow::Hidden;
-  case LXB_CSS_OVERFLOW_X_SCROLL:
-    return Overflow::Scroll;
-  case LXB_CSS_OVERFLOW_X_AUTO:
-    return Overflow::Auto;
-  case LXB_CSS_OVERFLOW_X_CLIP:
-    return Overflow::Clip;
-  default:
-    return Overflow::Visible;
-  }
-}
-
-TextAlign mapTextAlign(lxb_css_text_align_type_t t) {
-  switch (t) {
-  case LXB_CSS_TEXT_ALIGN_END:
-    return TextAlign::End;
-  case LXB_CSS_TEXT_ALIGN_LEFT:
-    return TextAlign::Left;
-  case LXB_CSS_TEXT_ALIGN_RIGHT:
-    return TextAlign::Right;
-  case LXB_CSS_TEXT_ALIGN_CENTER:
-    return TextAlign::Center;
-  case LXB_CSS_TEXT_ALIGN_JUSTIFY:
-  case LXB_CSS_TEXT_ALIGN_JUSTIFY_ALL:
-    return TextAlign::Justify;
-  case LXB_CSS_TEXT_ALIGN_MATCH_PARENT:
-  case LXB_CSS_TEXT_ALIGN_START:
-  default:
-    return TextAlign::Start;
-  }
-}
-
-WhiteSpace mapWhiteSpace(lxb_css_white_space_type_t t) {
-  switch (t) {
-  case LXB_CSS_WHITE_SPACE_PRE:
-    return WhiteSpace::Pre;
-  case LXB_CSS_WHITE_SPACE_NOWRAP:
-    return WhiteSpace::Nowrap;
-  case LXB_CSS_WHITE_SPACE_PRE_WRAP:
-  case LXB_CSS_WHITE_SPACE_BREAK_SPACES:
-    return WhiteSpace::PreWrap;
-  case LXB_CSS_WHITE_SPACE_PRE_LINE:
-    return WhiteSpace::PreLine;
-  default:
-    return WhiteSpace::Normal;
-  }
-}
-
-FontStyle mapFontStyle(lxb_css_font_style_type_t t) {
-  switch (t) {
-  case LXB_CSS_FONT_STYLE_ITALIC:
-    return FontStyle::Italic;
-  case LXB_CSS_FONT_STYLE_OBLIQUE:
-    return FontStyle::Oblique;
-  default:
-    return FontStyle::Normal;
-  }
-}
-
 float fontStretchPercent(lxb_css_font_stretch_type_t t) {
   switch (t) {
   case LXB_CSS_FONT_STRETCH_ULTRA_CONDENSED:
@@ -325,31 +163,6 @@ const char* genericFontFamily(lxb_css_font_family_type_t t) {
   }
 }
 
-BorderStyle mapBorderStyle(lxb_css_value_type_t t) {
-  switch (t) {
-  case LXB_CSS_BORDER_HIDDEN:
-    return BorderStyle::Hidden;
-  case LXB_CSS_BORDER_DOTTED:
-    return BorderStyle::Dotted;
-  case LXB_CSS_BORDER_DASHED:
-    return BorderStyle::Dashed;
-  case LXB_CSS_BORDER_SOLID:
-    return BorderStyle::Solid;
-  case LXB_CSS_BORDER_DOUBLE:
-    return BorderStyle::Double;
-  case LXB_CSS_BORDER_GROOVE:
-    return BorderStyle::Groove;
-  case LXB_CSS_BORDER_RIDGE:
-    return BorderStyle::Ridge;
-  case LXB_CSS_BORDER_INSET:
-    return BorderStyle::Inset;
-  case LXB_CSS_BORDER_OUTSET:
-    return BorderStyle::Outset;
-  default:
-    return BorderStyle::None;
-  }
-}
-
 LengthValue borderWidth(lxb_css_value_length_type_t width,
                         const ResolveContext& ctx) {
   switch (width.type) {
@@ -370,9 +183,10 @@ BorderEdge resolveBorderEdgeValue(const lxb_css_property_border_t& b,
                                   const ResolveContext& ctx,
                                   const Color& currentColor) {
   BorderEdge edge;
-  edge.styleKind = mapBorderStyle(b.style);
-  edge.width = (edge.styleKind == BorderStyle::None ||
-                edge.styleKind == BorderStyle::Hidden)
+  edge.styleKind =
+      b.style == LXB_CSS_VALUE__UNDEF ? LXB_CSS_BORDER_NONE : b.style;
+  edge.width = (edge.styleKind == LXB_CSS_BORDER_NONE ||
+                edge.styleKind == LXB_CSS_BORDER_HIDDEN)
                    ? LengthValue::makePx(0.0f)
                    : borderWidth(b.width, ctx);
 
@@ -433,7 +247,7 @@ void resolveBorderColor(const CascadedStyle& cascaded, uint16_t id,
   }
 }
 
-// Convert a lexbor number-or-percentage channel to 0..255.
+// 将 lexbor 的 number-or-percentage 颜色通道转换到 0..255。
 uint8_t channel8(const lxb_css_value_number_percentage_t& c) {
   if (c.type == LXB_CSS_VALUE__PERCENTAGE) {
     float v = static_cast<float>(c.u.percentage.num) * 2.55f;
@@ -453,9 +267,9 @@ uint8_t alpha8(const lxb_css_value_number_percentage_t& a) {
   return static_cast<uint8_t>(v < 0 ? 0 : (v > 255 ? 255 : v));
 }
 
-// Resolve a lexbor color into a concrete Color. `currentColorValue` is the
-// element's already-computed `color` (for currentColor on non-color props).
-// Returns false when the value is a wide keyword (handled by the caller).
+// 把 lexbor color 解析成具体 Color。
+// currentColorValue 是元素已经算好的 color，用于非 color 属性里的 currentColor。
+// 如果值是 inherit/initial 等 wide keyword，返回 false，由调用方处理。
 bool convColor(const lxb_css_value_color_t& c, const Color& currentColorValue,
                Color& out) {
   switch (c.type) {
@@ -478,15 +292,16 @@ bool convColor(const lxb_css_value_color_t& c, const Color& currentColorValue,
   case LXB_CSS_VALUE_INITIAL:
   case LXB_CSS_VALUE_UNSET:
   case LXB_CSS_VALUE_REVERT:
-    return false; // wide keyword
+    return false; // wide keyword，由调用方按属性继承规则处理。
   default:
-    // Named colors (red/green/...) and hsl/lab/lch: M2 color table.
+    // TODO：补齐 named colors、hsl/lab/lch 等颜色表。
     out = Color::black();
     return true;
   }
 }
 
-// font-size keyword (medium/large/...) → px, against a 16px medium baseline.
+// font-size 关键字（medium/large/...）转 px，当前以 16px medium 为基准。
+// TODO：接入真实字体/缩放配置后，这里不能再写死 16px 基准。
 float fontSizeKeywordPx(lxb_css_value_type_t t) {
   switch (t) {
   case LXB_CSS_FONT_SIZE_XX_SMALL:
@@ -510,26 +325,26 @@ float fontSizeKeywordPx(lxb_css_value_type_t t) {
   }
 }
 
-// Resolve font-size to px. percentage/em are relative to the parent font-size.
+// 将 font-size 解析成 px。percentage/em 都相对父元素 font-size。
 float resolveFontSizePx(const CascadedStyle& cascaded, float parentFontSizePx,
                         const ResolveContext& ctx) {
-  using FS = lxb_css_property_font_size_t; // length_percentage_type
+  using FS = lxb_css_property_font_size_t; // lexbor 的 font-size typed value。
   const FS* fs = declared<FS>(cascaded, LXB_CSS_PROPERTY_FONT_SIZE);
   if (!fs) {
-    return parentFontSizePx; // inherited
+    return parentFontSizePx; // font-size 默认继承。
   }
   switch (wideFromType(fs->type)) {
   case Wide::Inherit:
-  case Wide::Unset: // font-size is inherited
+  case Wide::Unset: // font-size 是继承属性，unset 等价 inherit。
     return parentFontSizePx;
   case Wide::Initial:
     return 16.0f;
   case Wide::Revert:
-    return parentFontSizePx; // M1: revert≈unset
+    return parentFontSizePx; // M1：revert 暂按 unset 处理。
   case Wide::None:
     break;
   }
-  // Absolute/relative size keywords sit in fs->type too.
+  // 绝对/相对字号关键字也放在 fs->type 里。
   if (fs->type != LXB_CSS_VALUE__LENGTH && fs->type != LXB_CSS_VALUE__PERCENTAGE) {
     if (fs->type == LXB_CSS_FONT_SIZE_LARGER) return parentFontSizePx * 1.2f;
     if (fs->type == LXB_CSS_FONT_SIZE_SMALLER) return parentFontSizePx / 1.2f;
@@ -539,10 +354,9 @@ float resolveFontSizePx(const CascadedStyle& cascaded, float parentFontSizePx,
   if (lp.type == LXB_CSS_VALUE__PERCENTAGE) {
     return parentFontSizePx * static_cast<float>(lp.u.percentage.num) / 100.0f;
   }
-  // length: em/ex are relative to the PARENT font-size. Build a context whose
-  // font base is the parent's size (ctx coming in is the parent's context, so
-  // its `fontSizePx` already is the parent's, but parentFontSizePx is the
-  // grandparent's — pin both to parentFontSizePx for correctness).
+  // length：font-size 上的 em/ex/ch 相对父元素字号，不是当前元素字号。
+  // 易错点：传入的 ctx 来自父元素；ctx.fontSizePx 已经是父字号，
+  // 但 ctx.parentFontSizePx 是祖父字号，所以这里把两者都钉到父字号。
   ResolveContext c = ctx;
   c.fontSizePx = parentFontSizePx;
   c.parentFontSizePx = parentFontSizePx;
@@ -551,10 +365,9 @@ float resolveFontSizePx(const CascadedStyle& cascaded, float parentFontSizePx,
   return resolveLengthPx(lp.u.length, c, /*forFontSize=*/true);
 }
 
-// Resolve a <length-percentage> property with wide-keyword + inheritance.
-// `initialVal` is the property's initial value; `parentVal` the parent's
-// computed value (used only for `inherit`). Non-inherited props pass their
-// initial for both initial and unset.
+// 解析 <length-percentage> 属性，同时处理 wide keyword 和继承。
+// initialVal 是属性 initial 值；parentVal 是父元素 computed 值，仅 inherit 使用。
+// 非继承属性在 initial/unset 两种路径都传 initial。
 LengthValue resolveLP(const CascadedStyle& cascaded, uint16_t id,
                       const ResolveContext& ctx, LengthValue initialVal,
                       LengthValue parentVal, bool inheritedProp,
@@ -572,7 +385,7 @@ LengthValue resolveLP(const CascadedStyle& cascaded, uint16_t id,
   case Wide::Unset:
     return inheritedProp ? parentVal : initialVal;
   case Wide::Revert:
-    return inheritedProp ? parentVal : initialVal; // M1
+    return inheritedProp ? parentVal : initialVal; // M1：revert 暂按 unset 处理。
   case Wide::None:
     return resolveLengthPercentage(*lp, ctx);
   }
@@ -590,7 +403,7 @@ LengthValue resolveLPValue(const lxb_css_value_length_percentage_t& lp,
   case Wide::Unset:
     return inheritedProp ? parentVal : initialVal;
   case Wide::Revert:
-    return inheritedProp ? parentVal : initialVal; // M1
+    return inheritedProp ? parentVal : initialVal; // M1：revert 暂按 unset 处理。
   case Wide::None:
     return resolveLengthPercentage(lp, ctx);
   }
@@ -614,9 +427,39 @@ void expandFourSides(const lxb_css_value_length_percentage_t* input[4],
   output[kLeft] = count >= 4 ? input[kLeft] : output[kRight];
 }
 
-} // namespace
+} // 匿名命名空间
 
-StyleResolver::StyleResolver() = default;
+enum NodeStateFlag : uint8_t {
+  kNodeSelfDirty = 1 << 0,
+  kNodeSubtreeDirty = 1 << 1,
+  kNodeChildDirty = 1 << 2,
+};
+
+StyleResolver::StyleResolver() {
+  nodeStates_ = lexbor_dobject_create();
+  if (nodeStates_ == nullptr ||
+      lexbor_dobject_init(nodeStates_, 1024, sizeof(NodeState)) != LXB_STATUS_OK) {
+    nodeStates_ = lexbor_dobject_destroy(nodeStates_, true);
+    throw std::bad_alloc();
+  }
+}
+
+StyleResolver::~StyleResolver() {
+  nodeStates_ = lexbor_dobject_destroy(nodeStates_, true);
+}
+
+void StyleResolver::beginDocument(const ResolveContext& rootCtx) {
+  if (nodeStates_ != nullptr) {
+    lexbor_dobject_clean(nodeStates_);
+  }
+  ++generation_;
+  if (generation_ == 0) {
+    generation_ = 1;
+  }
+  heap_.clear();
+  rootCtx_ = rootCtx;
+  initialStyle_ = ComputedStyle{};
+}
 
 ComputedStyle*
 StyleResolver::resolveElement(lxb_dom_element_t* element,
@@ -628,20 +471,20 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
   ComputedStyleBuilder builder(*style, heap_);
   CascadedStyle cascaded = cascadedStyleNormalizer_.collect(element);
 
-  // ---- Phase 0: writing-mode, direction (logical→physical inputs) ---------
+  // ---- 阶段 0：writing-mode、direction（逻辑方向转物理边的输入） ----
   if (const auto* d = declared<lxb_css_property_direction_t>(
           cascaded,
           LXB_CSS_PROPERTY_DIRECTION)) {
     switch (wideFromType(d->type)) {
     case Wide::Initial:
-      builder.inheritedOther().direction = Direction::Ltr;
+      builder.inheritedOther().direction = LXB_CSS_DIRECTION_LTR;
       break;
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
-      break; // inherited: keep parent's (already shared)
+      break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
-      builder.inheritedOther().direction = mapDirection(d->type);
+      builder.inheritedOther().direction = d->type;
       break;
     }
   }
@@ -650,21 +493,21 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_WRITING_MODE)) {
     switch (wideFromType(d->type)) {
     case Wide::Initial:
-      builder.inheritedOther().writingMode = WritingMode::HorizontalTb;
+      builder.inheritedOther().writingMode = LXB_CSS_WRITING_MODE_HORIZONTAL_TB;
       break;
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
       break;
     case Wide::None:
-      builder.inheritedOther().writingMode = mapWritingMode(d->type);
+      builder.inheritedOther().writingMode = d->type;
       break;
     }
   }
 
-  // ---- Phase 1: color (currentColor source) -------------------------------
+  // ---- 阶段 1：color（currentColor 的来源） -------------------------------
   {
-    Color resolved = parent.text().color; // inherited default
+    Color resolved = parent.text().color; // 默认继承。
     if (const auto* c = declared<lxb_css_property_color_t>(
             cascaded,
             LXB_CSS_PROPERTY_COLOR)) {
@@ -679,7 +522,7 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
         resolved = parent.text().color;
         break;
       case Wide::None:
-        // For `color`, currentColor means the inherited color.
+        // 易错点：在 color 属性自身里，currentColor 表示继承来的 color。
         if (convColor(*c, parent.text().color, out)) resolved = out;
         break;
       }
@@ -688,21 +531,21 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
   }
   const Color currentColor = style->text().color;
 
-  // ---- Phase 2: font-size (em/ex/ch base) ---------------------------------
+  // ---- 阶段 2：font-size（em/ex/ch 的基准） -------------------------------
   const float fontSizePx =
       resolveFontSizePx(cascaded, parentCtx.fontSizePx, parentCtx);
   builder.text().font.sizePx = fontSizePx;
 
-  // Build the context used to resolve this element's lengths.
+  // 构建当前元素后续解析长度时使用的上下文。
   outCtx = parentCtx;
-  outCtx.parentFontSizePx = fontSizePx; // children's em base
+  outCtx.parentFontSizePx = fontSizePx; // 子元素解析 em/font-size 的父字号。
   outCtx.fontSizePx = fontSizePx;
-  outCtx.exPx = fontSizePx * 0.5f; // M2: QFontMetricsF::xHeight()
-  outCtx.chPx = fontSizePx * 0.5f; // M2: advance('0')
+  outCtx.exPx = fontSizePx * 0.5f; // TODO：M2 接 QFontMetricsF::xHeight()。
+  outCtx.chPx = fontSizePx * 0.5f; // TODO：M2 接字符 '0' 的 advance。
   outCtx.lineHeightPx = fontSizePx * 1.2f;
   ResolveContext& ctx = outCtx;
 
-  // ---- Phase 3: font props (font metrics are still M2) --------------------
+  // ---- 阶段 3：font 属性（真实 font metrics 仍是 M2） --------------------
   if (const auto* ff = declared<lxb_css_property_font_family_t>(
           cascaded,
           LXB_CSS_PROPERTY_FONT_FAMILY)) {
@@ -727,7 +570,7 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
-      break; // inherited
+      break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
       if (fw->type == LXB_CSS_FONT_WEIGHT_BOLD) {
         builder.text().font.weight = 700;
@@ -750,14 +593,14 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_FONT_STYLE)) {
     switch (wideFromType(fs->type)) {
     case Wide::Initial:
-      builder.text().font.style = FontStyle::Normal;
+      builder.text().font.style = LXB_CSS_FONT_STYLE_NORMAL;
       break;
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
-      break; // inherited
+      break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
-      builder.text().font.style = mapFontStyle(fs->type);
+      builder.text().font.style = fs->type;
       break;
     }
   }
@@ -771,7 +614,7 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
-      break; // inherited
+      break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
       if (fst->type == LXB_CSS_FONT_STRETCH__PERCENTAGE) {
         builder.text().font.stretchPercent =
@@ -783,7 +626,7 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     }
   }
 
-  // ---- Phase 4: line-height (lh unit; simplified for M1) ------------------
+  // ---- 阶段 4：line-height（lh 单位；M1 简化实现） -------------------------
   if (const auto* lh = declared<lxb_css_property_line_height_t>(
           cascaded,
           LXB_CSS_PROPERTY_LINE_HEIGHT)) {
@@ -816,22 +659,22 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     builder.text().lineHeight = value;
   }
 
-  // ---- Phase 5: box / sizing enums ----------------------------------------
+  // ---- 阶段 5：box / sizing 枚举 ------------------------------------------
   if (const auto* d =
           declared<lxb_css_property_display_t>(cascaded, LXB_CSS_PROPERTY_DISPLAY)) {
     switch (wideFromType(d->a)) {
     case Wide::Initial:
     case Wide::Unset:
-      builder.box().display = Display::Inline;
+      builder.box().display = LXB_CSS_DISPLAY_INLINE;
       break;
     case Wide::Inherit:
       builder.box().display = parent.box().display;
       break;
     case Wide::Revert:
-      builder.box().display = Display::Inline;
+      builder.box().display = LXB_CSS_DISPLAY_INLINE;
       break;
     case Wide::None:
-      builder.box().display = mapDisplay(d->a);
+      builder.box().display = d->a;
       break;
     }
   }
@@ -841,8 +684,8 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     if (wideFromType(d->type) == Wide::Inherit) {
       builder.box().position = parent.box().position;
     } else if (wideFromType(d->type) == Wide::None) {
-      builder.box().position = mapPosition(d->type);
-    } // initial/unset/revert → Static (default already)
+      builder.box().position = d->type;
+    } // initial/unset/revert -> Static，默认值已经是 static。
   }
   if (const auto* d = declared<lxb_css_property_box_sizing_t>(
           cascaded,
@@ -850,7 +693,7 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     if (wideFromType(d->type) == Wide::Inherit) {
       builder.box().boxSizing = parent.box().boxSizing;
     } else if (wideFromType(d->type) == Wide::None) {
-      builder.box().boxSizing = mapBoxSizing(d->type);
+      builder.box().boxSizing = d->type;
     }
   }
   if (const auto* d =
@@ -858,7 +701,7 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     if (wideFromType(d->type) == Wide::Inherit) {
       builder.box().floatKind = parent.box().floatKind;
     } else if (wideFromType(d->type) == Wide::None) {
-      builder.box().floatKind = mapFloat(d->type);
+      builder.box().floatKind = d->type;
     }
   }
   if (const auto* d =
@@ -868,9 +711,9 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     } else if (wideFromType(d->type) == Wide::Initial ||
                wideFromType(d->type) == Wide::Unset ||
                wideFromType(d->type) == Wide::Revert) {
-      builder.box().clear = Clear::None;
+      builder.box().clear = LXB_CSS_CLEAR_NONE;
     } else {
-      builder.box().clear = mapClear(d->type);
+      builder.box().clear = d->type;
     }
   }
   if (const auto* z =
@@ -902,21 +745,21 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_VISIBILITY)) {
     switch (wideFromType(d->type)) {
     case Wide::Initial:
-      builder.inheritedOther().visibility = Visibility::Visible;
+      builder.inheritedOther().visibility = LXB_CSS_VISIBILITY_VISIBLE;
       break;
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
-      break; // inherited
+      break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
-      builder.inheritedOther().visibility = mapVisibility(d->type);
+      builder.inheritedOther().visibility = d->type;
       break;
     }
   }
 
-  // ---- Box sizes (length-percentage; non-inherited) -----------------------
-  // For non-inherited props, `inherit` must copy the PARENT's computed value,
-  // so each call passes parent's value explicitly.
+  // ---- Box 尺寸（length-percentage；非继承属性） ----------------------------
+  // 易错点：非继承属性遇到 inherit 时必须复制父元素 computed value，
+  // 所以每次调用都显式传入 parentVal。
   bool present = false;
   auto setBoxLP = [&](uint16_t id, LengthValue initial, LengthValue parentVal, LengthValue& slot) {
     LengthValue v = resolveLP(cascaded, id, ctx, initial, parentVal, false, &present);
@@ -929,7 +772,7 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
   setBoxLP(LXB_CSS_PROPERTY_MAX_WIDTH, LengthValue::makeNone(), parent.box().maxWidth, builder.box().maxWidth);
   setBoxLP(LXB_CSS_PROPERTY_MAX_HEIGHT, LengthValue::makeNone(), parent.box().maxHeight, builder.box().maxHeight);
 
-  // ---- Surround: margin / padding / inset (TRBL physical) -----------------
+  // ---- Surround：margin / padding / inset（TRBL 物理边） -------------------
   struct SideProp {
     uint16_t id;
     int side;
@@ -963,20 +806,20 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     if (present) builder.surround().inset[in.side] = v;
   }
 
-  // ---- Inherited text details --------------------------------------------
+  // ---- 继承 text 细节属性 -------------------------------------------------
   if (const auto* ta = declared<lxb_css_property_text_align_t>(
           cascaded,
           LXB_CSS_PROPERTY_TEXT_ALIGN)) {
     switch (wideFromType(ta->type)) {
     case Wide::Initial:
-      builder.text().textAlign = TextAlign::Start;
+      builder.text().textAlign = LXB_CSS_TEXT_ALIGN_START;
       break;
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
-      break; // inherited
+      break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
-      builder.text().textAlign = mapTextAlign(ta->type);
+      builder.text().textAlign = ta->type;
       break;
     }
   }
@@ -985,14 +828,14 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_TEXT_ALIGN_ALL)) {
     switch (wideFromType(ta->type)) {
     case Wide::Initial:
-      builder.text().textAlign = TextAlign::Start;
+      builder.text().textAlign = LXB_CSS_TEXT_ALIGN_START;
       break;
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
-      break; // inherited
+      break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
-      builder.text().textAlign = mapTextAlign(ta->type);
+      builder.text().textAlign = ta->type;
       break;
     }
   }
@@ -1001,14 +844,14 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_WHITE_SPACE)) {
     switch (wideFromType(ws->type)) {
     case Wide::Initial:
-      builder.text().whiteSpace = WhiteSpace::Normal;
+      builder.text().whiteSpace = LXB_CSS_WHITE_SPACE_NORMAL;
       break;
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
-      break; // inherited
+      break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
-      builder.text().whiteSpace = mapWhiteSpace(ws->type);
+      builder.text().whiteSpace = ws->type;
       break;
     }
   }
@@ -1022,7 +865,7 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
-      break; // inherited
+      break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
       builder.text().textIndent = resolveLengthPercentage(ti->length, ctx);
       break;
@@ -1038,7 +881,7 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
-      break; // inherited
+      break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
       builder.text().letterSpacing =
           ls->type == LXB_CSS_LETTER_SPACING__LENGTH
@@ -1057,7 +900,7 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
-      break; // inherited
+      break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
       builder.text().wordSpacing =
           ws->type == LXB_CSS_WORD_SPACING__LENGTH
@@ -1067,7 +910,7 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     }
   }
 
-  // ---- Border edges -------------------------------------------------------
+  // ---- Border 边 ----------------------------------------------------------
   const SideProp borders[4] = {
       {LXB_CSS_PROPERTY_BORDER_TOP, kTop},
       {LXB_CSS_PROPERTY_BORDER_RIGHT, kRight},
@@ -1089,7 +932,7 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     resolveBorderColor(cascaded, c.id, currentColor, parent.surround().border[c.side], builder.surround().border[c.side]);
   }
 
-  // ---- Visual: background-color, opacity, overflow ------------------------
+  // ---- Visual：background-color、opacity、overflow ------------------------
   if (const auto* c = declared<lxb_css_property_background_color_t>(
           cascaded,
           LXB_CSS_PROPERTY_BACKGROUND_COLOR)) {
@@ -1127,18 +970,16 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     case Wide::Initial:
     case Wide::Unset:
     case Wide::Revert:
-      builder.visual().overflowX = Overflow::Visible;
+      builder.visual().overflowX = LXB_CSS_OVERFLOW_X_VISIBLE;
       break;
     case Wide::None:
-      builder.visual().overflowX = mapOverflow(d->type);
+      builder.visual().overflowX = d->type;
       break;
     }
   }
   if (const auto* d = declared<lxb_css_property_overflow_y_t>(
           cascaded,
           LXB_CSS_PROPERTY_OVERFLOW_Y)) {
-    // lexbor's *_type_t are all `unsigned int` and OVERFLOW_Y_* alias the same
-    // LXB_CSS_VALUE_* ids as OVERFLOW_X_*, so mapOverflow handles both.
     switch (wideFromType(d->type)) {
     case Wide::Inherit:
       builder.visual().overflowY = parent.visual().overflowY;
@@ -1146,10 +987,10 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     case Wide::Initial:
     case Wide::Unset:
     case Wide::Revert:
-      builder.visual().overflowY = Overflow::Visible;
+      builder.visual().overflowY = LXB_CSS_OVERFLOW_Y_VISIBLE;
       break;
     case Wide::None:
-      builder.visual().overflowY = mapOverflow(d->type);
+      builder.visual().overflowY = d->type;
       break;
     }
   }
@@ -1163,10 +1004,10 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     case Wide::Initial:
     case Wide::Unset:
     case Wide::Revert:
-      builder.visual().overflowX = Overflow::Visible;
+      builder.visual().overflowX = LXB_CSS_OVERFLOW_X_VISIBLE;
       break;
     case Wide::None:
-      builder.visual().overflowX = mapOverflow(d->type);
+      builder.visual().overflowX = d->type;
       break;
     }
   }
@@ -1180,10 +1021,10 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     case Wide::Initial:
     case Wide::Unset:
     case Wide::Revert:
-      builder.visual().overflowY = Overflow::Visible;
+      builder.visual().overflowY = LXB_CSS_OVERFLOW_Y_VISIBLE;
       break;
     case Wide::None:
-      builder.visual().overflowY = mapOverflow(d->type);
+      builder.visual().overflowY = d->type;
       break;
     }
   }
@@ -1196,7 +1037,14 @@ void StyleResolver::resolveSubtree(lxb_dom_element_t* element,
                                    const ResolveContext& parentCtx) {
   ResolveContext outCtx;
   auto style = resolveElement(element, parent, parentCtx, outCtx);
-  styles_[lxb_dom_interface_node(element)] = style;
+  lxb_dom_node_t* node = lxb_dom_interface_node(element);
+  NodeState* state = ensureState(node);
+  if (state == nullptr) {
+    return;
+  }
+  state->style = style;
+  state->context = outCtx;
+  clearDirty(node);
 
   for (lxb_dom_node_t* child = lxb_dom_interface_node(element)->first_child;
        child != nullptr;
@@ -1207,22 +1055,228 @@ void StyleResolver::resolveSubtree(lxb_dom_element_t* element,
   }
 }
 
+const ComputedStyle*
+StyleResolver::resolveElementIncremental(lxb_dom_element_t* element) {
+  if (element == nullptr) {
+    return nullptr;
+  }
+
+  lxb_dom_node_t* node = lxb_dom_interface_node(element);
+  const ComputedStyle* parentStyle = &initialStyle_;
+  const ResolveContext* parentCtx = &rootCtx_;
+
+  lxb_dom_node_t* parent = node->parent;
+  while (parent != nullptr && parent->type != LXB_DOM_NODE_TYPE_ELEMENT) {
+    parent = parent->parent;
+  }
+  if (parent != nullptr) {
+    if (const ComputedStyle* resolvedParent = styleFor(parent)) {
+      parentStyle = resolvedParent;
+      if (const ResolveContext* resolvedParentCtx = contextFor(parent)) {
+        parentCtx = resolvedParentCtx;
+      }
+    }
+  }
+
+  ResolveContext outCtx;
+  ComputedStyle* style = resolveElement(element, *parentStyle, *parentCtx, outCtx);
+  NodeState* state = ensureState(node);
+  if (state == nullptr) {
+    return nullptr;
+  }
+  state->style = style;
+  state->context = outCtx;
+  clearDirty(node);
+  return style;
+}
+
+void StyleResolver::resolveSubtreeIncremental(lxb_dom_element_t* element) {
+  const ComputedStyle* style = resolveElementIncremental(element);
+  if (style == nullptr) {
+    return;
+  }
+
+  for (lxb_dom_node_t* child = lxb_dom_interface_node(element)->first_child;
+       child != nullptr;
+       child = child->next) {
+    if (child->type == LXB_DOM_NODE_TYPE_ELEMENT) {
+      resolveSubtreeIncremental(lxb_dom_interface_element(child));
+    }
+  }
+}
+
+void StyleResolver::resolvePendingSubtreeIncremental(lxb_dom_node_t* root) {
+  resolvePendingSubtree(root, false);
+}
+
+void StyleResolver::resolvePendingSubtree(lxb_dom_node_t* root, bool force) {
+  if (root == nullptr) {
+    return;
+  }
+
+  if (root->type == LXB_DOM_NODE_TYPE_ELEMENT) {
+    const bool missing = styleFor(root) == nullptr;
+    const bool dirty = isDirty(root);
+    force = force || dirty;
+    if (missing || force) {
+      resolveElementIncremental(lxb_dom_interface_element(root));
+    } else if (!hasDirtyDescendant(root)) {
+      return;
+    }
+  }
+
+  for (lxb_dom_node_t* child = root->first_child; child != nullptr;
+       child = child->next) {
+    resolvePendingSubtree(child, force);
+  }
+
+  if (root->type == LXB_DOM_NODE_TYPE_ELEMENT) {
+    if (NodeState* state = ensureState(root)) {
+      state->flags &= ~kNodeChildDirty;
+    }
+  }
+}
+
+void StyleResolver::markStyleDirty(lxb_dom_element_t* element) {
+  if (element == nullptr) {
+    return;
+  }
+
+  lxb_dom_node_t* node = lxb_dom_interface_node(element);
+  NodeState* state = ensureState(node);
+  if (state == nullptr) {
+    return;
+  }
+  state->flags |= kNodeSelfDirty;
+  markChildDirtyAncestors(node);
+}
+
+void StyleResolver::markChildrenDirty(lxb_dom_node_t* parent) {
+  if (parent == nullptr || parent->type != LXB_DOM_NODE_TYPE_ELEMENT) {
+    return;
+  }
+
+  NodeState* state = ensureState(parent);
+  if (state == nullptr) {
+    return;
+  }
+  state->flags |= kNodeChildDirty;
+  markChildDirtyAncestors(parent);
+}
+
+void StyleResolver::markSubtreeStyleDirty(lxb_dom_node_t* root) {
+  if (root == nullptr) {
+    return;
+  }
+
+  if (root->type == LXB_DOM_NODE_TYPE_ELEMENT) {
+    NodeState* state = ensureState(root);
+    if (state == nullptr) {
+      return;
+    }
+    state->flags |= kNodeSubtreeDirty;
+    markChildDirtyAncestors(root);
+    return;
+  }
+
+  for (lxb_dom_node_t* child = root->first_child; child != nullptr;
+       child = child->next) {
+    if (child->type == LXB_DOM_NODE_TYPE_ELEMENT) {
+      markSubtreeStyleDirty(child);
+      return;
+    }
+  }
+}
+
 void StyleResolver::resolveDocument(lxb_html_document_t* doc,
                                     const ResolveContext& rootCtx) {
-  styles_.clear();
-  heap_.clear();
+  beginDocument(rootCtx);
   lxb_dom_document_t* dom = lxb_dom_interface_document(doc);
   lxb_dom_element_t* root = lxb_dom_document_element(dom);
   if (root == nullptr) {
     return;
   }
-  ComputedStyle initial; // the inherited-root baseline (all initial values)
-  resolveSubtree(root, initial, rootCtx);
+  resolvePendingSubtreeIncremental(lxb_dom_interface_node(root));
 }
 
 const ComputedStyle* StyleResolver::styleFor(const lxb_dom_node_t* node) const {
-  auto it = styles_.find(node);
-  return it == styles_.end() ? nullptr : it->second;
+  const NodeState* state = stateFor(node);
+  return state == nullptr ? nullptr : state->style;
 }
 
-} // namespace style
+StyleResolver::NodeState* StyleResolver::ensureState(lxb_dom_node_t* node) {
+  if (node == nullptr || node->type != LXB_DOM_NODE_TYPE_ELEMENT) {
+    return nullptr;
+  }
+
+  if (node->user != nullptr) {
+    NodeState* state = static_cast<NodeState*>(node->user);
+    if (state->owner == this && state->generation == generation_ &&
+        state->node == node) {
+      return state;
+    }
+  }
+
+  void* storage = lexbor_dobject_calloc(nodeStates_);
+  if (storage == nullptr) {
+    throw std::bad_alloc();
+  }
+
+  NodeState* state = new (storage) NodeState();
+  state->owner = this;
+  state->node = node;
+  state->generation = generation_;
+  node->user = state;
+  return state;
+}
+
+const StyleResolver::NodeState*
+StyleResolver::stateFor(const lxb_dom_node_t* node) const {
+  if (node == nullptr || node->user == nullptr) {
+    return nullptr;
+  }
+  const NodeState* state = static_cast<const NodeState*>(node->user);
+  return state->owner == this && state->generation == generation_ &&
+                 state->node == node
+             ? state
+             : nullptr;
+}
+
+const ResolveContext*
+StyleResolver::contextFor(const lxb_dom_node_t* node) const {
+  const NodeState* state = stateFor(node);
+  return state == nullptr || state->style == nullptr ? nullptr : &state->context;
+}
+
+bool StyleResolver::isDirty(const lxb_dom_node_t* node) const {
+  const NodeState* state = stateFor(node);
+  return state != nullptr &&
+         (state->flags & (kNodeSelfDirty | kNodeSubtreeDirty)) != 0;
+}
+
+bool StyleResolver::hasDirtyDescendant(const lxb_dom_node_t* node) const {
+  const NodeState* state = stateFor(node);
+  return state != nullptr && (state->flags & kNodeChildDirty) != 0;
+}
+
+void StyleResolver::clearDirty(lxb_dom_node_t* node) {
+  NodeState* state = ensureState(node);
+  if (state == nullptr) {
+    return;
+  }
+  state->flags &= ~(kNodeSelfDirty | kNodeSubtreeDirty);
+}
+
+void StyleResolver::markChildDirtyAncestors(lxb_dom_node_t* node) {
+  for (lxb_dom_node_t* parent = node == nullptr ? nullptr : node->parent;
+       parent != nullptr && parent->type == LXB_DOM_NODE_TYPE_ELEMENT;
+       parent = parent->parent) {
+    NodeState* state = ensureState(parent);
+    if ((state->flags & kNodeChildDirty) != 0) {
+      break;
+    }
+    state->flags |= kNodeChildDirty;
+  }
+}
+
+} // 命名空间 style

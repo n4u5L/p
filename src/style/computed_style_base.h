@@ -1,12 +1,13 @@
 #pragma once
 
-// ComputedStyleBase is the generated-style storage layer.
+// ComputedStyleBase 是 generated-style 风格的底层存储层。
 //
-// Blink uses ComputedStyleBase for the dense field storage, generated
-// accessors, resetters, and inherited/non-inherited equality.  This project
-// keeps the file hand-written for now, but the ownership boundary is the same:
-// ComputedStyleBase stores computed values; ComputedStyle adds higher-level
-// style behavior.
+// Blink 用 ComputedStyleBase 放密集字段、生成访问器、resetter，以及继承/非继承
+// 分组的相等性判断。本项目暂时手写这些字段，但边界保持一致：
+// ComputedStyleBase 只存 computed value；ComputedStyle 再叠加更高层样式行为。
+//
+// 易错点：这里的 DataRef 是轻量 COW，不是 shared_ptr。样式数据对象由 StyleHeap
+// arena 批量释放，引用计数只用于判断是否需要 clone，不负责独立 delete。
 
 #include <cstdint>
 #include <string>
@@ -165,7 +166,7 @@ struct LineHeight {
 struct FontDesc {
   std::string family = "sans-serif";
   float sizePx = 16.0f;
-  FontStyle style = FontStyle::Normal;
+  lxb_css_font_style_type_t style = LXB_CSS_FONT_STYLE_NORMAL;
   int weight = 400;
   float stretchPercent = 100.0f;
 
@@ -185,8 +186,8 @@ struct StyleInheritedData : public StyleData {
   LengthValue letterSpacing = LengthValue::makeAuto();
   LengthValue wordSpacing = LengthValue::makePx(0.0f);
   LengthValue textIndent = LengthValue::makePx(0.0f);
-  TextAlign textAlign = TextAlign::Start;
-  WhiteSpace whiteSpace = WhiteSpace::Normal;
+  lxb_css_text_align_type_t textAlign = LXB_CSS_TEXT_ALIGN_START;
+  lxb_css_white_space_type_t whiteSpace = LXB_CSS_WHITE_SPACE_NORMAL;
 
   bool operator==(const StyleInheritedData& o) const {
     return color == o.color && font == o.font && lineHeight == o.lineHeight &&
@@ -200,9 +201,9 @@ struct StyleInheritedData : public StyleData {
 };
 
 struct StyleInheritedOtherData : public StyleData {
-  Direction direction = Direction::Ltr;
-  WritingMode writingMode = WritingMode::HorizontalTb;
-  Visibility visibility = Visibility::Visible;
+  lxb_css_direction_type_t direction = LXB_CSS_DIRECTION_LTR;
+  lxb_css_writing_mode_type_t writingMode = LXB_CSS_WRITING_MODE_HORIZONTAL_TB;
+  lxb_css_visibility_type_t visibility = LXB_CSS_VISIBILITY_VISIBLE;
 
   bool operator==(const StyleInheritedOtherData& o) const {
     return direction == o.direction && writingMode == o.writingMode &&
@@ -214,17 +215,17 @@ struct StyleInheritedOtherData : public StyleData {
 };
 
 struct StyleBoxData : public StyleData {
-  Display display = Display::Inline;
-  Position position = Position::Static;
+  lxb_css_display_type_t display = LXB_CSS_DISPLAY_INLINE;
+  lxb_css_position_type_t position = LXB_CSS_POSITION_STATIC;
   LengthValue width = LengthValue::makeAuto();
   LengthValue height = LengthValue::makeAuto();
   LengthValue minWidth = LengthValue::makePx(0.0f);
   LengthValue minHeight = LengthValue::makePx(0.0f);
   LengthValue maxWidth = LengthValue::makeNone();
   LengthValue maxHeight = LengthValue::makeNone();
-  BoxSizing boxSizing = BoxSizing::ContentBox;
-  Float floatKind = Float::None;
-  Clear clear = Clear::None;
+  lxb_css_box_sizing_type_t boxSizing = LXB_CSS_BOX_SIZING_CONTENT_BOX;
+  lxb_css_float_type_t floatKind = LXB_CSS_FLOAT_NONE;
+  lxb_css_clear_type_t clear = LXB_CSS_CLEAR_NONE;
   int zIndex = 0;
   bool zIndexAuto = true;
 
@@ -267,8 +268,8 @@ struct StyleSurroundData : public StyleData {
 struct StyleVisualData : public StyleData {
   Color background = Color::transparent();
   float opacity = 1.0f;
-  Overflow overflowX = Overflow::Visible;
-  Overflow overflowY = Overflow::Visible;
+  lxb_css_overflow_x_type_t overflowX = LXB_CSS_OVERFLOW_X_VISIBLE;
+  lxb_css_overflow_y_type_t overflowY = LXB_CSS_OVERFLOW_Y_VISIBLE;
 
   bool operator==(const StyleVisualData& o) const {
     return background == o.background && opacity == o.opacity &&
@@ -364,7 +365,7 @@ public:
     return visualData_;
   }
 
-  // Compatibility accessors while layout code migrates to generated-style names.
+  // 兼容旧 layout 调用；后续迁移到 generated-style 命名后可逐步删除。
   const StyleInheritedData& text() const {
     return InheritedData();
   }
@@ -405,4 +406,4 @@ private:
   DataRef<StyleVisualData> visualData_;
 };
 
-} // namespace style
+} // 命名空间 style

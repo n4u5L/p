@@ -1,35 +1,33 @@
-// End-to-end smoke test for the M1 style engine: parse HTML + CSS via lexbor,
-// attach the UA stylesheet, run StyleResolver, and assert computed values.
+// M1 样式引擎端到端冒烟测试：HTML 通过 lexbor 分块流式解析，
+// <style> 在建树过程中进入样式系统，然后通过增量 StyleEngine/Resolver
+// 解析 computed style 并断言关键计算值。
 //
-// Build:
+// 构建：
 //   cmake --build build --target style_smoke
+//
+// 易错点：测试里会在 late stylesheet 之前读取一次 <p> 的样式，
+// 但不要在后续 stylesheet 触发重算后继续持有旧 ComputedStyle*。
+// 当前 arena 会保留旧对象一段时间，指针未必立刻失效，但语义上已经过期。
 
 #include <cmath>
 #include <cstdio>
 #include <cstring>
 
 #include "lexbor/css/css.h"
-#include "lexbor/css/stylesheet.h"
 #include "lexbor/dom/interface.h"
+#include "lexbor/dom/interfaces/document.h"
 #include "lexbor/dom/interfaces/element.h"
 #include "lexbor/html/html.h"
+#include "lexbor/html/parser.h"
 #include "lexbor/style/style.h"
 #include "lexbor/style/html/interfaces/document.h"
 
 #include "computed_style.h"
 #include "resolver.h"
+#include "style_engine.h"
 #include "ua_stylesheet.h"
 
 namespace {
-
-const char* kHtml =
-    "<html><head><style></style></head><body>"
-    "<h1 id='title'>Hello</h1>"
-    "<p id='para' style='color:#ff0000; margin-left: 2em; width: 50%'>para</p>"
-    "<div id='box' class='box'>boxed</div>"
-    "<section id='text' class='text'><span id='child'>child</span></section>"
-    "<aside id='pos' class='pos'>pos</aside>"
-    "</body></html>";
 
 const char* kAuthorCss =
     ".box { display: block; width: 100px; height: 40px;"
@@ -42,6 +40,21 @@ const char* kAuthorCss =
     "        text-indent: 2em; letter-spacing: 1px; word-spacing: 0.5em; }"
     ".pos { position: relative; top: 10px; left: 5%; clear: left;"
     "       z-index: 7; box-sizing: border-box; float: left; opacity: 50%; }";
+
+const char* kHtmlPrefix = "<html><head><style>";
+const char* kAuthorStyleClose = "</style>";
+const char* kBodyPrefix =
+    "</head><body>"
+    "<h1 id='title'>Hello</h1>"
+    "<p id='para' style='color:#ff0000; margin-left: 2em; width: 50%'>para</p>"
+    "<div id='box' class='box'>boxed</div>";
+const char* kLateStyle =
+    "<style>#para { font-size: 22px; }"
+    "#child { font-size: 20px; }</style>";
+const char* kHtmlSuffix =
+    "<section id='text' class='text'><span id='child'>child</span></section>"
+    "<aside id='pos' class='pos'>pos</aside>"
+    "</body></html>";
 
 bool failed = false;
 
@@ -135,12 +148,12 @@ void dumpTree(lxb_dom_node_t* node, const style::StyleResolver& resolver,
   }
 }
 
-} // namespace
+} // 匿名命名空间
 
 int main() {
-  lxb_html_document_t* doc = lxb_html_document_create();
-  if (!doc || lxb_style_init(doc) != LXB_STATUS_OK) {
-    std::printf("init failed\n");
+  lxb_html_parser_t* htmlParser = lxb_html_parser_create();
+  if (htmlParser == nullptr || lxb_html_parser_init(htmlParser) != LXB_STATUS_OK) {
+    std::printf("html parser init failed\n");
     return 1;
   }
 
@@ -150,23 +163,14 @@ int main() {
     return 1;
   }
 
+  lxb_html_document_t* doc = lxb_html_parse_chunk_begin(htmlParser);
+  if (!doc || lxb_style_init(doc) != LXB_STATUS_OK) {
+    std::printf("init failed\n");
+    return 1;
+  }
+
   if (!style::attachUaStylesheet(doc, parser)) {
     std::printf("UA stylesheet attach failed\n");
-    return 1;
-  }
-
-  lxb_css_stylesheet_t* author = lxb_css_stylesheet_create(nullptr);
-  if (lxb_css_stylesheet_parse(author, parser, reinterpret_cast<const lxb_char_t*>(kAuthorCss), std::strlen(kAuthorCss)) != LXB_STATUS_OK) {
-    std::printf("author css parse failed\n");
-    return 1;
-  }
-
-  if (lxb_html_document_parse(doc, reinterpret_cast<const lxb_char_t*>(kHtml), std::strlen(kHtml)) != LXB_STATUS_OK) {
-    std::printf("html parse failed\n");
-    return 1;
-  }
-  if (lxb_html_document_stylesheet_attach(doc, author) != LXB_STATUS_OK) {
-    std::printf("author attach failed\n");
     return 1;
   }
 
@@ -174,8 +178,46 @@ int main() {
   root.viewportW = 1280.0f;
   root.viewportH = 720.0f;
 
-  style::StyleResolver resolver;
-  resolver.resolveDocument(doc, root);
+  style::StyleEngine engine(doc, root);
+  style::StyleResolver& resolver = engine.resolver();
+
+  auto parseChunk = [&](const char* data) -> bool {
+    if (lxb_html_parse_chunk_process(
+            htmlParser, reinterpret_cast<const lxb_char_t*>(data),
+            std::strlen(data)) != LXB_STATUS_OK) {
+      return false;
+    }
+    engine.update();
+    return true;
+  };
+
+  if (!parseChunk(kHtmlPrefix) || !parseChunk(kAuthorCss) ||
+      !parseChunk(kAuthorStyleClose) || !parseChunk(kBodyPrefix)) {
+    std::printf("html chunk parse failed\n");
+    return 1;
+  }
+
+  const style::ComputedStyle* paraBeforeLate = nullptr;
+  {
+    lxb_dom_node_t* rootNode = lxb_dom_interface_node(doc);
+    lxb_dom_element_t* para = findById(rootNode, "para");
+    paraBeforeLate =
+        para == nullptr ? nullptr : resolver.styleFor(lxb_dom_interface_node(para));
+  }
+  check(paraBeforeLate != nullptr &&
+            colorIs(paraBeforeLate->text().color, 255, 0, 0),
+        "pre-late inline color resolves before later stylesheet");
+  check(paraBeforeLate != nullptr &&
+            near(paraBeforeLate->text().font.sizePx, 18.0f),
+        "pre-late author font-size resolves before later stylesheet");
+  paraBeforeLate = nullptr;
+
+  if (!parseChunk(kLateStyle) || !parseChunk(kHtmlSuffix) ||
+      lxb_html_parse_chunk_end(htmlParser) != LXB_STATUS_OK) {
+    std::printf("html chunk parse failed\n");
+    return 1;
+  }
+  engine.update();
 
   lxb_dom_node_t* rootNode = lxb_dom_interface_node(doc);
   dumpTree(rootNode, resolver, 0);
@@ -198,16 +240,16 @@ int main() {
   check(title != nullptr && title->text().font.weight == 700,
         "h1 UA font-weight bold resolves to 700");
 
-  check(para != nullptr && near(para->text().font.sizePx, 18.0f),
-        "p author font-size resolves");
+  check(para != nullptr && near(para->text().font.sizePx, 22.0f),
+        "late stylesheet invalidates and re-resolves previous element");
   check(para != nullptr && colorIs(para->text().color, 255, 0, 0),
         "inline color resolves");
   check(para != nullptr && lenPercent(para->box().width, 50.0f),
         "inline width percentage is preserved");
-  check(para != nullptr && lenPx(para->surround().margin[style::kLeft], 36.0f),
+  check(para != nullptr && lenPx(para->surround().margin[style::kLeft], 44.0f),
         "inline margin-left em resolves against element font-size");
 
-  check(box != nullptr && box->box().display == style::Display::Block,
+  check(box != nullptr && box->box().display == LXB_CSS_DISPLAY_BLOCK,
         "box display block resolves");
   check(box != nullptr && lenPx(box->box().width, 100.0f),
         "box width resolves");
@@ -221,7 +263,7 @@ int main() {
         "padding shorthand right resolves px");
   check(box != nullptr &&
             box->surround().border[style::kTop].styleKind ==
-                style::BorderStyle::Dashed,
+                LXB_CSS_BORDER_DASHED,
         "border shorthand style resolves");
   check(box != nullptr &&
             lenPx(box->surround().border[style::kTop].width, 5.0f),
@@ -232,22 +274,22 @@ int main() {
   check(box != nullptr &&
             colorIs(box->surround().border[style::kLeft].color, 51, 102, 153),
         "border-left-color overrides shorthand color");
-  check(box != nullptr && box->visual().overflowX == style::Overflow::Hidden,
+  check(box != nullptr && box->visual().overflowX == LXB_CSS_OVERFLOW_X_HIDDEN,
         "overflow-x resolves");
-  check(box != nullptr && box->visual().overflowY == style::Overflow::Scroll,
+  check(box != nullptr && box->visual().overflowY == LXB_CSS_OVERFLOW_Y_SCROLL,
         "overflow-y resolves");
 
   check(text != nullptr && text->text().font.family == "monospace",
         "font-family generic resolves");
   check(text != nullptr && text->text().font.weight == 650,
         "numeric font-weight resolves");
-  check(text != nullptr && text->text().font.style == style::FontStyle::Italic,
+  check(text != nullptr && text->text().font.style == LXB_CSS_FONT_STYLE_ITALIC,
         "font-style resolves");
   check(text != nullptr && near(text->text().font.stretchPercent, 125.0f),
         "font-stretch percentage resolves");
-  check(text != nullptr && text->text().textAlign == style::TextAlign::Center,
+  check(text != nullptr && text->text().textAlign == LXB_CSS_TEXT_ALIGN_CENTER,
         "text-align resolves");
-  check(text != nullptr && text->text().whiteSpace == style::WhiteSpace::PreWrap,
+  check(text != nullptr && text->text().whiteSpace == LXB_CSS_WHITE_SPACE_PRE_WRAP,
         "white-space resolves");
   check(text != nullptr && lenPx(text->text().textIndent, 32.0f),
         "text-indent em resolves");
@@ -255,22 +297,24 @@ int main() {
         "letter-spacing resolves");
   check(text != nullptr && lenPx(text->text().wordSpacing, 8.0f),
         "word-spacing em resolves");
-  check(child != nullptr && child->text().textAlign == style::TextAlign::Center,
+  check(child != nullptr && child->text().textAlign == LXB_CSS_TEXT_ALIGN_CENTER,
         "inherited text-align flows to child");
-  check(child != nullptr && child->text().whiteSpace == style::WhiteSpace::PreWrap,
+  check(child != nullptr && child->text().whiteSpace == LXB_CSS_WHITE_SPACE_PRE_WRAP,
         "inherited white-space flows to child");
+  check(child != nullptr && near(child->text().font.sizePx, 20.0f),
+        "late stylesheet applies to later inserted element");
 
-  check(pos != nullptr && pos->box().position == style::Position::Relative,
+  check(pos != nullptr && pos->box().position == LXB_CSS_POSITION_RELATIVE,
         "position resolves");
   check(pos != nullptr && lenPx(pos->surround().inset[style::kTop], 10.0f),
         "top inset resolves");
   check(pos != nullptr && lenPercent(pos->surround().inset[style::kLeft], 5.0f),
         "left inset percentage is preserved");
-  check(pos != nullptr && pos->box().clear == style::Clear::Left,
+  check(pos != nullptr && pos->box().clear == LXB_CSS_CLEAR_LEFT,
         "clear resolves");
-  check(pos != nullptr && pos->box().floatKind == style::Float::Left,
+  check(pos != nullptr && pos->box().floatKind == LXB_CSS_FLOAT_LEFT,
         "float resolves");
-  check(pos != nullptr && pos->box().boxSizing == style::BoxSizing::BorderBox,
+  check(pos != nullptr && pos->box().boxSizing == LXB_CSS_BOX_SIZING_BORDER_BOX,
         "box-sizing resolves");
   check(pos != nullptr && !pos->box().zIndexAuto && pos->box().zIndex == 7,
         "z-index resolves");

@@ -11,10 +11,9 @@ namespace style {
 
 namespace {
 
-// A pragmatic subset of the HTML5 UA stylesheet (per the HTML spec's
-// "Rendering" section). Enough to drive normal-flow layout: block-level
-// elements, headings/paragraph margins, lists, basic table display, and the
-// hidden head metadata. Extend as layout coverage grows.
+// HTML5 UA stylesheet 的实用子集，足够驱动普通流布局：
+// block 元素、标题/段落 margin、列表、基础 table display、以及隐藏 head 元信息。
+// TODO：随着 layout 覆盖面扩大继续补充。
 constexpr char kUaCss[] = R"CSS(
 html, address, blockquote, body, dd, div, dl, dt, fieldset, form,
 frame, frameset, h1, h2, h3, h4, h5, h6, noframes, ol, p, ul,
@@ -53,7 +52,7 @@ td, th { padding: 1px; }
 th { font-weight: bold; }
 )CSS";
 
-} // namespace
+} // 匿名命名空间
 
 const char* uaStylesheetSource() {
   return kUaCss;
@@ -79,4 +78,4 @@ bool attachUaStylesheet(lxb_html_document_t* doc, lxb_css_parser_t* parser) {
   return lxb_html_document_stylesheet_attach(doc, sst) == LXB_STATUS_OK;
 }
 
-} // namespace style
+} // 命名空间 style

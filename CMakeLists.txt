@@ -57,6 +57,7 @@ add_library(style STATIC
     src/style/length_resolve.cpp
     src/style/style_heap.cpp
     src/style/resolver.cpp
+    src/style/style_engine.cpp
     src/style/ua_stylesheet.cpp
 )
 target_include_directories(style PUBLIC src/style)

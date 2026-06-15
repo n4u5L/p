@@ -8,11 +8,11 @@ namespace style {
 
 namespace {
 
-constexpr size_t kCount = LXB_CSS_PROPERTY__LAST_ENTRY; // 0x67
+constexpr size_t kCount = LXB_CSS_PROPERTY__LAST_ENTRY; // lexbor 当前 property 表大小。
 
 using Table = std::array<PropertyMeta, kCount>;
 
-// Set group + phase for an id.
+// 设置指定 property id 的继承性、存储分组和解析阶段。
 inline void set(Table& t, uint16_t id, bool inherited, Group g,
                 Phase p = Phase::Normal, bool shorthand = false) {
   if (id < kCount) {
@@ -23,31 +23,32 @@ inline void set(Table& t, uint16_t id, bool inherited, Group g,
 Table buildTable() {
   Table t{};
 
-  // Default every slot to {id, non-inherited, Box, Normal}.
+  // 默认每个槽位都是 {id, 非继承, Box, Normal}。
+  // 易错点：未知属性不能默认继承，否则新增 lexbor id 可能污染子树。
   for (uint16_t id = 0; id < kCount; ++id) {
     t[id] = PropertyMeta{id, false, Group::Box, Phase::Normal, false};
   }
 
-  // --- Phase 0: writing context (logical→physical mapping inputs) ----------
+  // --- 阶段 0：writing context（逻辑边转物理边的输入） ----------------------
   set(t, LXB_CSS_PROPERTY_WRITING_MODE, true, Group::InheritedOther, Phase::WritingContext);
   set(t, LXB_CSS_PROPERTY_DIRECTION, true, Group::InheritedOther, Phase::WritingContext);
 
-  // --- Phase 1: color (currentColor source) --------------------------------
+  // --- 阶段 1：color（currentColor 来源） ----------------------------------
   set(t, LXB_CSS_PROPERTY_COLOR, true, Group::InheritedText, Phase::ColorContext);
 
-  // --- Phase 2: font-size (em/ex/ch base) ----------------------------------
+  // --- 阶段 2：font-size（em/ex/ch 基准） ----------------------------------
   set(t, LXB_CSS_PROPERTY_FONT_SIZE, true, Group::InheritedText, Phase::FontSize);
 
-  // --- Phase 3: font props (build QFont → metrics) -------------------------
+  // --- 阶段 3：font 属性（后续生成 QFont/metrics） --------------------------
   set(t, LXB_CSS_PROPERTY_FONT_FAMILY, true, Group::InheritedText, Phase::FontProps);
   set(t, LXB_CSS_PROPERTY_FONT_STYLE, true, Group::InheritedText, Phase::FontProps);
   set(t, LXB_CSS_PROPERTY_FONT_WEIGHT, true, Group::InheritedText, Phase::FontProps);
   set(t, LXB_CSS_PROPERTY_FONT_STRETCH, true, Group::InheritedText, Phase::FontProps);
 
-  // --- Phase 4: line-height (lh unit) --------------------------------------
+  // --- 阶段 4：line-height（lh 单位基准） ----------------------------------
   set(t, LXB_CSS_PROPERTY_LINE_HEIGHT, true, Group::InheritedText, Phase::LineHeight);
 
-  // --- Remaining inherited text properties (Phase Normal) ------------------
+  // --- 其它继承 text 属性（Normal 阶段） -----------------------------------
   set(t, LXB_CSS_PROPERTY_LETTER_SPACING, true, Group::InheritedText);
   set(t, LXB_CSS_PROPERTY_WORD_SPACING, true, Group::InheritedText);
   set(t, LXB_CSS_PROPERTY_TEXT_ALIGN, true, Group::InheritedText);
@@ -68,10 +69,10 @@ Table buildTable() {
   set(t, LXB_CSS_PROPERTY_TEXT_ORIENTATION, true, Group::InheritedOther);
   set(t, LXB_CSS_PROPERTY_DOMINANT_BASELINE, true, Group::InheritedOther);
 
-  // --- Inherited non-text -------------------------------------------------
+  // --- 继承但非 text 的属性 ------------------------------------------------
   set(t, LXB_CSS_PROPERTY_VISIBILITY, true, Group::InheritedOther);
 
-  // --- Box (non-inherited layout) -----------------------------------------
+  // --- Box（非继承 layout 属性） -------------------------------------------
   set(t, LXB_CSS_PROPERTY_DISPLAY, false, Group::Box);
   set(t, LXB_CSS_PROPERTY_POSITION, false, Group::Box);
   set(t, LXB_CSS_PROPERTY_WIDTH, false, Group::Box);
@@ -105,7 +106,7 @@ Table buildTable() {
   set(t, LXB_CSS_PROPERTY_WRAP_THROUGH, false, Group::Box);
   set(t, LXB_CSS_PROPERTY_UNICODE_BIDI, false, Group::Box);
 
-  // --- Surround (margin/padding/border/inset; non-inherited) --------------
+  // --- Surround（margin/padding/border/inset；非继承） ----------------------
   set(t, LXB_CSS_PROPERTY_MARGIN_TOP, false, Group::Surround);
   set(t, LXB_CSS_PROPERTY_MARGIN_RIGHT, false, Group::Surround);
   set(t, LXB_CSS_PROPERTY_MARGIN_BOTTOM, false, Group::Surround);
@@ -131,7 +132,7 @@ Table buildTable() {
   set(t, LXB_CSS_PROPERTY_INSET_INLINE_START, false, Group::Surround);
   set(t, LXB_CSS_PROPERTY_INSET_INLINE_END, false, Group::Surround);
 
-  // --- Visual (background/opacity/overflow/decoration; non-inherited) -----
+  // --- Visual（background/opacity/overflow/decoration；非继承） -------------
   set(t, LXB_CSS_PROPERTY_BACKGROUND_COLOR, false, Group::Visual);
   set(t, LXB_CSS_PROPERTY_OPACITY, false, Group::Visual);
   set(t, LXB_CSS_PROPERTY_OVERFLOW_X, false, Group::Visual);
@@ -143,7 +144,7 @@ Table buildTable() {
   set(t, LXB_CSS_PROPERTY_TEXT_DECORATION_STYLE, false, Group::Visual);
   set(t, LXB_CSS_PROPERTY_TEXT_DECORATION_COLOR, false, Group::Visual);
 
-  // --- Shorthands: expanded into longhands by lexbor; resolver skips them --
+  // --- Shorthand：lexbor 已展开成 longhand，resolver 跳过 -------------------
   set(t, LXB_CSS_PROPERTY_MARGIN, false, Group::Shorthand, Phase::Normal, true);
   set(t, LXB_CSS_PROPERTY_PADDING, false, Group::Shorthand, Phase::Normal, true);
   set(t, LXB_CSS_PROPERTY_BORDER, false, Group::Shorthand, Phase::Normal, true);
@@ -159,7 +160,7 @@ const Table& table() {
   return t;
 }
 
-} // namespace
+} // 匿名命名空间
 
 size_t propertyCount() {
   return kCount;
@@ -224,4 +225,4 @@ bool isLengthProperty(uint16_t id) {
   }
 }
 
-} // namespace style
+} // 命名空间 style
