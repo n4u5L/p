@@ -82,6 +82,10 @@ bool colorIs(const style::Color& c, unsigned r, unsigned g, unsigned b,
   return c.r == r && c.g == g && c.b == b && c.a == a;
 }
 
+bool strEq(const char* a, const char* b) {
+  return a != nullptr && b != nullptr && std::strcmp(a, b) == 0;
+}
+
 lxb_dom_element_t* findById(lxb_dom_node_t* node, const char* id) {
   if (node->type == LXB_DOM_NODE_TYPE_ELEMENT) {
     lxb_dom_element_t* el = lxb_dom_interface_element(node);
@@ -132,14 +136,19 @@ void dumpTree(lxb_dom_node_t* node, const style::StyleResolver& resolver,
     for (int i = 0; i < depth; ++i) std::printf("  ");
     std::printf("<%.*s> ", static_cast<int>(len), name);
     if (cs) {
-      std::printf("display=%d ", static_cast<int>(cs->box().display));
-      std::printf("font-size=%.1f ", cs->text().font.sizePx);
-      std::printf("weight=%d ", cs->text().font.weight);
-      std::printf("color=#%02x%02x%02x ", cs->text().color.r, cs->text().color.g, cs->text().color.b);
-      std::printf("bg=#%02x%02x%02x%02x ", cs->visual().background.r, cs->visual().background.g, cs->visual().background.b, cs->visual().background.a);
-      dumpLen("w", cs->box().width);
-      dumpLen("ml", cs->surround().margin[style::kLeft]);
-      dumpLen("bt", cs->surround().border[style::kTop].width);
+      std::printf("display=%d ", static_cast<int>(cs->Display()));
+      std::printf("font-size=%.1f ", cs->Font().sizePx);
+      std::printf("weight=%d ", cs->Font().weight);
+      std::printf("color=#%02x%02x%02x ", cs->InheritedData().color.r,
+                  cs->InheritedData().color.g, cs->InheritedData().color.b);
+      std::printf("bg=#%02x%02x%02x%02x ",
+                  cs->BackgroundData().backgroundColor.r,
+                  cs->BackgroundData().backgroundColor.g,
+                  cs->BackgroundData().backgroundColor.b,
+                  cs->BackgroundData().backgroundColor.a);
+      dumpLen("w", cs->BoxData().width);
+      dumpLen("ml", cs->BoxData().margin[style::kLeft]);
+      dumpLen("bt", cs->BoxData().borderWidth[style::kTop]);
     }
     std::printf("\n");
   }
@@ -205,10 +214,10 @@ int main() {
         para == nullptr ? nullptr : resolver.styleFor(lxb_dom_interface_node(para));
   }
   check(paraBeforeLate != nullptr &&
-            colorIs(paraBeforeLate->text().color, 255, 0, 0),
+            colorIs(paraBeforeLate->InheritedData().color, 255, 0, 0),
         "pre-late inline color resolves before later stylesheet");
   check(paraBeforeLate != nullptr &&
-            near(paraBeforeLate->text().font.sizePx, 18.0f),
+            near(paraBeforeLate->Font().sizePx, 18.0f),
         "pre-late author font-size resolves before later stylesheet");
   paraBeforeLate = nullptr;
 
@@ -235,90 +244,93 @@ int main() {
   const style::ComputedStyle* child = styleForId("child");
   const style::ComputedStyle* pos = styleForId("pos");
 
-  check(title != nullptr && near(title->text().font.sizePx, 32.0f),
+  check(title != nullptr && near(title->Font().sizePx, 32.0f),
         "h1 UA font-size resolves to 2em");
-  check(title != nullptr && title->text().font.weight == 700,
+  check(title != nullptr && title->Font().weight == 700,
         "h1 UA font-weight bold resolves to 700");
 
-  check(para != nullptr && near(para->text().font.sizePx, 22.0f),
+  check(para != nullptr && near(para->Font().sizePx, 22.0f),
         "late stylesheet invalidates and re-resolves previous element");
-  check(para != nullptr && colorIs(para->text().color, 255, 0, 0),
+  check(para != nullptr && colorIs(para->InheritedData().color, 255, 0, 0),
         "inline color resolves");
-  check(para != nullptr && lenPercent(para->box().width, 50.0f),
+  check(para != nullptr && lenPercent(para->BoxData().width, 50.0f),
         "inline width percentage is preserved");
-  check(para != nullptr && lenPx(para->surround().margin[style::kLeft], 44.0f),
+  check(para != nullptr && lenPx(para->BoxData().margin[style::kLeft], 44.0f),
         "inline margin-left em resolves against element font-size");
 
-  check(box != nullptr && box->box().display == LXB_CSS_DISPLAY_BLOCK,
+  check(box != nullptr && box->Display() == LXB_CSS_DISPLAY_BLOCK,
         "box display block resolves");
-  check(box != nullptr && lenPx(box->box().width, 100.0f),
+  check(box != nullptr && lenPx(box->BoxData().width, 100.0f),
         "box width resolves");
-  check(box != nullptr && lenPx(box->box().height, 40.0f),
+  check(box != nullptr && lenPx(box->BoxData().height, 40.0f),
         "box height resolves");
-  check(box != nullptr && colorIs(box->visual().background, 0, 128, 255),
+  check(box != nullptr &&
+            colorIs(box->BackgroundData().backgroundColor, 0, 128, 255),
         "box background-color resolves");
-  check(box != nullptr && lenPx(box->surround().padding[style::kTop], 16.0f),
+  check(box != nullptr && lenPx(box->BoxData().padding[style::kTop], 16.0f),
         "padding shorthand top resolves em");
-  check(box != nullptr && lenPx(box->surround().padding[style::kRight], 2.0f),
+  check(box != nullptr && lenPx(box->BoxData().padding[style::kRight], 2.0f),
         "padding shorthand right resolves px");
   check(box != nullptr &&
-            box->surround().border[style::kTop].styleKind ==
+            box->BoxData().borderStyle[style::kTop] ==
                 LXB_CSS_BORDER_DASHED,
         "border shorthand style resolves");
   check(box != nullptr &&
-            lenPx(box->surround().border[style::kTop].width, 5.0f),
+            lenPx(box->BoxData().borderWidth[style::kTop], 5.0f),
         "border thick resolves");
   check(box != nullptr &&
-            colorIs(box->surround().border[style::kTop].color, 10, 20, 30),
+            colorIs(box->SurroundData().borderColor[style::kTop], 10, 20, 30),
         "border currentColor resolves");
   check(box != nullptr &&
-            colorIs(box->surround().border[style::kLeft].color, 51, 102, 153),
+            colorIs(box->SurroundData().borderColor[style::kLeft], 51, 102, 153),
         "border-left-color overrides shorthand color");
-  check(box != nullptr && box->visual().overflowX == LXB_CSS_OVERFLOW_X_HIDDEN,
+  check(box != nullptr && box->OverflowX() == LXB_CSS_OVERFLOW_X_HIDDEN,
         "overflow-x resolves");
-  check(box != nullptr && box->visual().overflowY == LXB_CSS_OVERFLOW_Y_SCROLL,
+  check(box != nullptr && box->OverflowY() == LXB_CSS_OVERFLOW_Y_SCROLL,
         "overflow-y resolves");
 
-  check(text != nullptr && text->text().font.family == "monospace",
+  check(text != nullptr && strEq(text->Font().family, "monospace"),
         "font-family generic resolves");
-  check(text != nullptr && text->text().font.weight == 650,
+  check(text != nullptr && text->Font().weight == 650,
         "numeric font-weight resolves");
-  check(text != nullptr && text->text().font.style == LXB_CSS_FONT_STYLE_ITALIC,
+  check(text != nullptr && text->Font().style == LXB_CSS_FONT_STYLE_ITALIC,
         "font-style resolves");
-  check(text != nullptr && near(text->text().font.stretchPercent, 125.0f),
+  check(text != nullptr && near(text->Font().stretchPercent, 125.0f),
         "font-stretch percentage resolves");
-  check(text != nullptr && text->text().textAlign == LXB_CSS_TEXT_ALIGN_CENTER,
+  check(text != nullptr && text->TextAlign() == LXB_CSS_TEXT_ALIGN_CENTER,
         "text-align resolves");
-  check(text != nullptr && text->text().whiteSpace == LXB_CSS_WHITE_SPACE_PRE_WRAP,
+  check(text != nullptr && text->WhiteSpace() == LXB_CSS_WHITE_SPACE_PRE_WRAP,
         "white-space resolves");
-  check(text != nullptr && lenPx(text->text().textIndent, 32.0f),
+  check(text != nullptr && lenPx(text->RareInheritedData().textIndent, 32.0f),
         "text-indent em resolves");
-  check(text != nullptr && lenPx(text->text().letterSpacing, 1.0f),
+  check(text != nullptr && lenPx(text->InheritedData().letterSpacing, 1.0f),
         "letter-spacing resolves");
-  check(text != nullptr && lenPx(text->text().wordSpacing, 8.0f),
+  check(text != nullptr && lenPx(text->InheritedData().wordSpacing, 8.0f),
         "word-spacing em resolves");
-  check(child != nullptr && child->text().textAlign == LXB_CSS_TEXT_ALIGN_CENTER,
+  check(child != nullptr && child->TextAlign() == LXB_CSS_TEXT_ALIGN_CENTER,
         "inherited text-align flows to child");
-  check(child != nullptr && child->text().whiteSpace == LXB_CSS_WHITE_SPACE_PRE_WRAP,
+  check(child != nullptr && child->WhiteSpace() == LXB_CSS_WHITE_SPACE_PRE_WRAP,
         "inherited white-space flows to child");
-  check(child != nullptr && near(child->text().font.sizePx, 20.0f),
+  check(child != nullptr && near(child->Font().sizePx, 20.0f),
         "late stylesheet applies to later inserted element");
 
-  check(pos != nullptr && pos->box().position == LXB_CSS_POSITION_RELATIVE,
+  check(pos != nullptr && pos->Position() == LXB_CSS_POSITION_RELATIVE,
         "position resolves");
-  check(pos != nullptr && lenPx(pos->surround().inset[style::kTop], 10.0f),
+  check(pos != nullptr && lenPx(pos->SurroundData().inset[style::kTop], 10.0f),
         "top inset resolves");
-  check(pos != nullptr && lenPercent(pos->surround().inset[style::kLeft], 5.0f),
+  check(pos != nullptr &&
+            lenPercent(pos->SurroundData().inset[style::kLeft], 5.0f),
         "left inset percentage is preserved");
-  check(pos != nullptr && pos->box().clear == LXB_CSS_CLEAR_LEFT,
+  check(pos != nullptr && pos->Clear() == LXB_CSS_CLEAR_LEFT,
         "clear resolves");
-  check(pos != nullptr && pos->box().floatKind == LXB_CSS_FLOAT_LEFT,
+  check(pos != nullptr && pos->VisualData().floating == LXB_CSS_FLOAT_LEFT,
         "float resolves");
-  check(pos != nullptr && pos->box().boxSizing == LXB_CSS_BOX_SIZING_BORDER_BOX,
+  check(pos != nullptr && pos->BoxData().boxSizing == LXB_CSS_BOX_SIZING_BORDER_BOX,
         "box-sizing resolves");
-  check(pos != nullptr && !pos->box().zIndexAuto && pos->box().zIndex == 7,
+  check(pos != nullptr && !pos->BoxData().zIndexAuto &&
+            pos->BoxData().zIndex == 7,
         "z-index resolves");
-  check(pos != nullptr && near(pos->visual().opacity, 0.5f),
+  check(pos != nullptr && near(pos->SvgData().opacity, 0.5f),
         "opacity percentage resolves");
 
   if (failed) {

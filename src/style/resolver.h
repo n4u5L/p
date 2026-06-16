@@ -101,6 +101,7 @@ private:
   bool hasDirtyDescendant(const lxb_dom_node_t* node) const;
   void clearDirty(lxb_dom_node_t* node);
   void markChildDirtyAncestors(lxb_dom_node_t* node);
+  void releaseStyle(ComputedStyle* style) noexcept;
 
   StyleHeap heap_;
   CascadedStyleNormalizer cascadedStyleNormalizer_;

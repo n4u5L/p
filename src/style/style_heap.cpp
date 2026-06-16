@@ -1,46 +1,138 @@
 #include "style_heap.h"
 
+#include <cstring>
 #include <stdexcept>
 
 namespace style {
 
-StyleHeap::StyleHeap(size_t prepareCount) {
-  memory_ = lxb_css_memory_create();
-  if (memory_ == nullptr) {
+StyleHeap::StyleHeap(size_t prepareCount)
+    : prepareCount_(prepareCount < 64 ? 64 : prepareCount) {
+  raw_ = lexbor_mraw_create();
+  if (raw_ == nullptr) {
     throw std::bad_alloc();
   }
 
-  if (lxb_css_memory_init(memory_, prepareCount) != LXB_STATUS_OK) {
-    memory_ = lxb_css_memory_destroy(memory_, true);
+  if (lexbor_mraw_init(raw_, 4096) != LXB_STATUS_OK) {
+    raw_ = lexbor_mraw_destroy(raw_, true);
     throw std::bad_alloc();
   }
 }
 
 StyleHeap::~StyleHeap() {
-  clear();
-  if (memory_ != nullptr) {
-    memory_ = lxb_css_memory_ref_dec_destroy(memory_);
+  for (lexbor_dobject_t*& pool : pools_) {
+    pool = lexbor_dobject_destroy(pool, true);
   }
+  raw_ = lexbor_mraw_destroy(raw_, true);
+}
+
+void* StyleHeap::allocRaw(size_t n) {
+  void* mem = lexbor_mraw_alloc(raw_, n);
+  if (mem == nullptr) {
+    throw std::bad_alloc();
+  }
+  return mem;
+}
+
+const char* StyleHeap::internString(const char* s, size_t len) {
+  if (const char* canonical = canonicalString(s, len)) {
+    return canonical;
+  }
+
+  char* copy = static_cast<char*>(allocRaw(len + 1));
+  std::memcpy(copy, s, len);
+  copy[len] = '\0';
+
+  InternEntry* entry = static_cast<InternEntry*>(allocRaw(sizeof(InternEntry)));
+  entry->data = copy;
+  entry->length = len;
+  entry->next = internHead_;
+  internHead_ = entry;
+
+  return copy;
+}
+
+const char* StyleHeap::canonicalString(const char* s, size_t len) const {
+  if (len == sizeof(kFontFamilySerif) - 1 &&
+      std::memcmp(s, kFontFamilySerif, len) == 0) {
+    return kFontFamilySerif;
+  }
+  if (len == sizeof(kFontFamilySansSerif) - 1 &&
+      std::memcmp(s, kFontFamilySansSerif, len) == 0) {
+    return kFontFamilySansSerif;
+  }
+  if (len == sizeof(kFontFamilyMonospace) - 1 &&
+      std::memcmp(s, kFontFamilyMonospace, len) == 0) {
+    return kFontFamilyMonospace;
+  }
+  if (len == sizeof(kFontFamilyCursive) - 1 &&
+      std::memcmp(s, kFontFamilyCursive, len) == 0) {
+    return kFontFamilyCursive;
+  }
+  if (len == sizeof(kFontFamilyFantasy) - 1 &&
+      std::memcmp(s, kFontFamilyFantasy, len) == 0) {
+    return kFontFamilyFantasy;
+  }
+  if (len == sizeof(kFontFamilySystemUi) - 1 &&
+      std::memcmp(s, kFontFamilySystemUi, len) == 0) {
+    return kFontFamilySystemUi;
+  }
+  if (len == sizeof(kFontFamilyEmoji) - 1 &&
+      std::memcmp(s, kFontFamilyEmoji, len) == 0) {
+    return kFontFamilyEmoji;
+  }
+  if (len == sizeof(kFontFamilyMath) - 1 &&
+      std::memcmp(s, kFontFamilyMath, len) == 0) {
+    return kFontFamilyMath;
+  }
+  if (len == sizeof(kFontFamilyFangsong) - 1 &&
+      std::memcmp(s, kFontFamilyFangsong, len) == 0) {
+    return kFontFamilyFangsong;
+  }
+  if (len == sizeof(kFontFamilyUiRounded) - 1 &&
+      std::memcmp(s, kFontFamilyUiRounded, len) == 0) {
+    return kFontFamilyUiRounded;
+  }
+
+  for (InternEntry* entry = internHead_; entry != nullptr; entry = entry->next) {
+    if (entry->length == len && std::memcmp(entry->data, s, len) == 0) {
+      return entry->data;
+    }
+  }
+
+  return nullptr;
 }
 
 void StyleHeap::clear() {
-  destroyPhase(DestructorPhase::StyleObject);
-  destroyPhase(DestructorPhase::StyleData);
-  destructors_.clear();
-
-  if (memory_ != nullptr) {
-    lxb_css_memory_clean(memory_);
-  }
-}
-
-void StyleHeap::destroyPhase(DestructorPhase phase) noexcept {
-  for (auto it = destructors_.rbegin(); it != destructors_.rend(); ++it) {
-    if (it->phase == phase && it->destroy != nullptr) {
-      it->destroy(it->ptr);
-      it->destroy = nullptr;
-      it->ptr = nullptr;
+  for (lexbor_dobject_t* pool : pools_) {
+    if (pool != nullptr) {
+      lexbor_dobject_clean(pool);
     }
   }
+
+  if (raw_ != nullptr) {
+    lexbor_mraw_clean(raw_);
+  }
+  internHead_ = nullptr;
+}
+
+lexbor_dobject_t* StyleHeap::ensurePool(StylePoolKind kind, size_t structSize) {
+  const size_t index = static_cast<size_t>(kind);
+  lexbor_dobject_t*& pool = pools_[index];
+  if (pool != nullptr) {
+    return pool;
+  }
+
+  pool = lexbor_dobject_create();
+  if (pool == nullptr) {
+    throw std::bad_alloc();
+  }
+
+  if (lexbor_dobject_init(pool, prepareCount_, structSize) != LXB_STATUS_OK) {
+    pool = lexbor_dobject_destroy(pool, true);
+    throw std::bad_alloc();
+  }
+
+  return pool;
 }
 
 } // namespace style

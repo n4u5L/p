@@ -16,15 +16,18 @@
 
 namespace style {
 
-// COW 存储分组，和 computed_style.h 的数据分组保持一致。
-// 分组描述写入时哪些字段一起复制/共享，和 inherited 语义是两件事。
+// Blink ComputedStyle field_group 存储分组。
+// 分组描述写入时哪些字段一起复制/共享，和 CSS inherited 语义是两件事。
 enum class Group : uint8_t {
-  InheritedText,  // color、font、text-*，继承且通常一起变化。
-  InheritedOther, // direction、writing-mode、visibility。
-  Box,            // display、position、sizing、flex。
-  Surround,       // margin、padding、border、inset。
-  Visual,         // background、opacity、overflow、decoration。
-  Shorthand       // shorthand 已由 lexbor 展开，不直接存 computed value。
+  TopLevel,      // 没有 field_group，直接存 ComputedStyleBase。
+  Inherited,     // field_group: "inherited"。
+  RareInherited, // field_group: "*" 且 inherited: true 的自动稀有组。
+  Box,           // field_group: "box"。
+  Surround,      // field_group: "surround"。
+  Background,    // field_group: "background"。
+  Svg,           // field_group: "svg"。
+  Visual,        // field_group: "visual"。
+  Shorthand      // shorthand 已由 lexbor 展开，不直接存 computed value。
 };
 
 // 元素内部解析阶段。resolver 按阶段递增处理，保证 writing-mode、color、
@@ -41,7 +44,7 @@ enum class Phase : uint8_t {
 struct PropertyMeta {
   uint16_t id = 0;        // lexbor LXB_CSS_PROPERTY_*。
   bool inherited = false; // CSS 规范定义的默认继承性。
-  Group group = Group::Box;
+  Group group = Group::TopLevel;
   Phase phase = Phase::Normal;
   bool isShorthand = false; // lexbor 已展开成 longhand，resolver 跳过 shorthand。
 };

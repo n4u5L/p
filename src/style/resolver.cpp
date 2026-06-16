@@ -138,28 +138,28 @@ const char* genericFontFamily(lxb_css_font_family_type_t t) {
   switch (t) {
   case LXB_CSS_FONT_FAMILY_SERIF:
   case LXB_CSS_FONT_FAMILY_UI_SERIF:
-    return "serif";
+    return kFontFamilySerif;
   case LXB_CSS_FONT_FAMILY_MONOSPACE:
   case LXB_CSS_FONT_FAMILY_UI_MONOSPACE:
-    return "monospace";
+    return kFontFamilyMonospace;
   case LXB_CSS_FONT_FAMILY_CURSIVE:
-    return "cursive";
+    return kFontFamilyCursive;
   case LXB_CSS_FONT_FAMILY_FANTASY:
-    return "fantasy";
+    return kFontFamilyFantasy;
   case LXB_CSS_FONT_FAMILY_SYSTEM_UI:
-    return "system-ui";
+    return kFontFamilySystemUi;
   case LXB_CSS_FONT_FAMILY_EMOJI:
-    return "emoji";
+    return kFontFamilyEmoji;
   case LXB_CSS_FONT_FAMILY_MATH:
-    return "math";
+    return kFontFamilyMath;
   case LXB_CSS_FONT_FAMILY_FANGSONG:
-    return "fangsong";
+    return kFontFamilyFangsong;
   case LXB_CSS_FONT_FAMILY_UI_ROUNDED:
-    return "ui-rounded";
+    return kFontFamilyUiRounded;
   case LXB_CSS_FONT_FAMILY_SANS_SERIF:
   case LXB_CSS_FONT_FAMILY_UI_SANS_SERIF:
   default:
-    return "sans-serif";
+    return kFontFamilySansSerif;
   }
 }
 
@@ -179,53 +179,59 @@ LengthValue borderWidth(lxb_css_value_length_type_t width,
   }
 }
 
-BorderEdge resolveBorderEdgeValue(const lxb_css_property_border_t& b,
-                                  const ResolveContext& ctx,
-                                  const Color& currentColor) {
-  BorderEdge edge;
-  edge.styleKind =
-      b.style == LXB_CSS_VALUE__UNDEF ? LXB_CSS_BORDER_NONE : b.style;
-  edge.width = (edge.styleKind == LXB_CSS_BORDER_NONE ||
-                edge.styleKind == LXB_CSS_BORDER_HIDDEN)
-                   ? LengthValue::makePx(0.0f)
-                   : borderWidth(b.width, ctx);
+void resolveBorderEdgeValue(const lxb_css_property_border_t& b,
+                            const ResolveContext& ctx,
+                            const Color& currentColor, LengthValue& width,
+                            lxb_css_border_type_t& styleKind, Color& color) {
+  styleKind = b.style == LXB_CSS_VALUE__UNDEF ? LXB_CSS_BORDER_NONE : b.style;
+  width = (styleKind == LXB_CSS_BORDER_NONE ||
+           styleKind == LXB_CSS_BORDER_HIDDEN)
+              ? LengthValue::makePx(0.0f)
+              : borderWidth(b.width, ctx);
 
   Color out;
   if (b.color.type == LXB_CSS_VALUE__UNDEF) {
-    edge.color = currentColor;
+    color = currentColor;
   } else if (convColor(b.color, currentColor, out)) {
-    edge.color = out;
+    color = out;
   }
-  return edge;
 }
 
-BorderEdge resolveBorderEdge(const CascadedStyle& cascaded, uint16_t id,
-                             const ResolveContext& ctx,
-                             const Color& currentColor,
-                             const BorderEdge& parentEdge,
-                             bool* present) {
+void resolveBorderEdge(const CascadedStyle& cascaded, uint16_t id,
+                       const ResolveContext& ctx, const Color& currentColor,
+                       const LengthValue& parentWidth,
+                       lxb_css_border_type_t parentStyle,
+                       const Color& parentColor, LengthValue& width,
+                       lxb_css_border_type_t& styleKind, Color& color,
+                       bool* present) {
   const auto* b = declared<lxb_css_property_border_t>(cascaded, id);
   *present = b != nullptr;
   if (b == nullptr) {
-    return BorderEdge{};
+    return;
   }
 
   switch (wideFromType(b->style)) {
   case Wide::Inherit:
-    return parentEdge;
+    width = parentWidth;
+    styleKind = parentStyle;
+    color = parentColor;
+    break;
   case Wide::Initial:
   case Wide::Unset:
   case Wide::Revert:
-    return BorderEdge{};
+    width = LengthValue::makePx(0.0f);
+    styleKind = LXB_CSS_BORDER_NONE;
+    color = currentColor;
+    break;
   case Wide::None:
-    return resolveBorderEdgeValue(*b, ctx, currentColor);
+    resolveBorderEdgeValue(*b, ctx, currentColor, width, styleKind, color);
+    break;
   }
-  return BorderEdge{};
 }
 
 void resolveBorderColor(const CascadedStyle& cascaded, uint16_t id,
-                        const Color& currentColor, const BorderEdge& parentEdge,
-                        BorderEdge& edge) {
+                        const Color& currentColor, const Color& parentColor,
+                        Color& color) {
   const auto* c = declared<lxb_css_value_color_t>(cascaded, id);
   if (c == nullptr) {
     return;
@@ -234,15 +240,15 @@ void resolveBorderColor(const CascadedStyle& cascaded, uint16_t id,
   Color out;
   switch (wideFromType(c->type)) {
   case Wide::Inherit:
-    edge.color = parentEdge.color;
+    color = parentColor;
     break;
   case Wide::Initial:
   case Wide::Unset:
   case Wide::Revert:
-    edge.color = currentColor;
+    color = currentColor;
     break;
   case Wide::None:
-    if (convColor(*c, currentColor, out)) edge.color = out;
+    if (convColor(*c, currentColor, out)) color = out;
     break;
   }
 }
@@ -477,14 +483,14 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_DIRECTION)) {
     switch (wideFromType(d->type)) {
     case Wide::Initial:
-      builder.inheritedOther().direction = LXB_CSS_DIRECTION_LTR;
+      builder.SetDirection(LXB_CSS_DIRECTION_LTR);
       break;
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
       break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
-      builder.inheritedOther().direction = d->type;
+      builder.SetDirection(d->type);
       break;
     }
   }
@@ -493,21 +499,21 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_WRITING_MODE)) {
     switch (wideFromType(d->type)) {
     case Wide::Initial:
-      builder.inheritedOther().writingMode = LXB_CSS_WRITING_MODE_HORIZONTAL_TB;
+      builder.SetWritingMode(LXB_CSS_WRITING_MODE_HORIZONTAL_TB);
       break;
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
       break;
     case Wide::None:
-      builder.inheritedOther().writingMode = d->type;
+      builder.SetWritingMode(d->type);
       break;
     }
   }
 
   // ---- 阶段 1：color（currentColor 的来源） -------------------------------
   {
-    Color resolved = parent.text().color; // 默认继承。
+    Color resolved = parent.InheritedData().color; // 默认继承。
     if (const auto* c = declared<lxb_css_property_color_t>(
             cascaded,
             LXB_CSS_PROPERTY_COLOR)) {
@@ -519,22 +525,22 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
       case Wide::Inherit:
       case Wide::Unset:
       case Wide::Revert:
-        resolved = parent.text().color;
+        resolved = parent.InheritedData().color;
         break;
       case Wide::None:
         // 易错点：在 color 属性自身里，currentColor 表示继承来的 color。
-        if (convColor(*c, parent.text().color, out)) resolved = out;
+        if (convColor(*c, parent.InheritedData().color, out)) resolved = out;
         break;
       }
     }
-    builder.text().color = resolved;
+    builder.InheritedData().color = resolved;
   }
-  const Color currentColor = style->text().color;
+  const Color currentColor = style->InheritedData().color;
 
   // ---- 阶段 2：font-size（em/ex/ch 的基准） -------------------------------
   const float fontSizePx =
       resolveFontSizePx(cascaded, parentCtx.fontSizePx, parentCtx);
-  builder.text().font.sizePx = fontSizePx;
+  builder.Font().sizePx = fontSizePx;
 
   // 构建当前元素后续解析长度时使用的上下文。
   outCtx = parentCtx;
@@ -552,9 +558,9 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     if (ff->first != nullptr) {
       const lxb_css_property_family_name_t* name = ff->first;
       if (name->generic) {
-        builder.text().font.family = genericFontFamily(name->u.type);
+        builder.Font().family = genericFontFamily(name->u.type);
       } else {
-        builder.text().font.family.assign(
+        builder.Font().family = heap_.internString(
             reinterpret_cast<const char*>(name->u.str.data),
             name->u.str.length);
       }
@@ -565,7 +571,7 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_FONT_WEIGHT)) {
     switch (wideFromType(fw->type)) {
     case Wide::Initial:
-      builder.text().font.weight = 400;
+      builder.Font().weight = 400;
       break;
     case Wide::Inherit:
     case Wide::Unset:
@@ -573,17 +579,15 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
       break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
       if (fw->type == LXB_CSS_FONT_WEIGHT_BOLD) {
-        builder.text().font.weight = 700;
+        builder.Font().weight = 700;
       } else if (fw->type == LXB_CSS_FONT_WEIGHT_BOLDER) {
-        builder.text().font.weight =
-            parent.text().font.weight < 600 ? 700 : 900;
+        builder.Font().weight = parent.Font().weight < 600 ? 700 : 900;
       } else if (fw->type == LXB_CSS_FONT_WEIGHT_LIGHTER) {
-        builder.text().font.weight =
-            parent.text().font.weight >= 600 ? 400 : 100;
+        builder.Font().weight = parent.Font().weight >= 600 ? 400 : 100;
       } else if (fw->type == LXB_CSS_FONT_WEIGHT__NUMBER) {
-        builder.text().font.weight = static_cast<int>(fw->number.num);
+        builder.Font().weight = static_cast<int>(fw->number.num);
       } else {
-        builder.text().font.weight = 400;
+        builder.Font().weight = 400;
       }
       break;
     }
@@ -593,14 +597,14 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_FONT_STYLE)) {
     switch (wideFromType(fs->type)) {
     case Wide::Initial:
-      builder.text().font.style = LXB_CSS_FONT_STYLE_NORMAL;
+      builder.Font().style = LXB_CSS_FONT_STYLE_NORMAL;
       break;
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
       break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
-      builder.text().font.style = fs->type;
+      builder.Font().style = fs->type;
       break;
     }
   }
@@ -609,7 +613,7 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_FONT_STRETCH)) {
     switch (wideFromType(fst->type)) {
     case Wide::Initial:
-      builder.text().font.stretchPercent = 100.0f;
+      builder.Font().stretchPercent = 100.0f;
       break;
     case Wide::Inherit:
     case Wide::Unset:
@@ -617,10 +621,9 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
       break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
       if (fst->type == LXB_CSS_FONT_STRETCH__PERCENTAGE) {
-        builder.text().font.stretchPercent =
-            static_cast<float>(fst->percentage.num);
+        builder.Font().stretchPercent = static_cast<float>(fst->percentage.num);
       } else {
-        builder.text().font.stretchPercent = fontStretchPercent(fst->type);
+        builder.Font().stretchPercent = fontStretchPercent(fst->type);
       }
       break;
     }
@@ -630,7 +633,7 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
   if (const auto* lh = declared<lxb_css_property_line_height_t>(
           cascaded,
           LXB_CSS_PROPERTY_LINE_HEIGHT)) {
-    LineHeight value = parent.text().lineHeight;
+    LineHeight value = parent.InheritedData().lineHeight;
     switch (wideFromType(lh->type)) {
     case Wide::Initial:
       value = LineHeight{};
@@ -638,7 +641,7 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
-      value = parent.text().lineHeight;
+      value = parent.InheritedData().lineHeight;
       break;
     case Wide::None:
       if (lh->type == LXB_CSS_VALUE__NUMBER) {
@@ -656,7 +659,7 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
       }
       break;
     }
-    builder.text().lineHeight = value;
+    builder.InheritedData().lineHeight = value;
   }
 
   // ---- 阶段 5：box / sizing 枚举 ------------------------------------------
@@ -665,16 +668,16 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     switch (wideFromType(d->a)) {
     case Wide::Initial:
     case Wide::Unset:
-      builder.box().display = LXB_CSS_DISPLAY_INLINE;
+      builder.SetDisplay(LXB_CSS_DISPLAY_INLINE);
       break;
     case Wide::Inherit:
-      builder.box().display = parent.box().display;
+      builder.SetDisplay(parent.Display());
       break;
     case Wide::Revert:
-      builder.box().display = LXB_CSS_DISPLAY_INLINE;
+      builder.SetDisplay(LXB_CSS_DISPLAY_INLINE);
       break;
     case Wide::None:
-      builder.box().display = d->a;
+      builder.SetDisplay(d->a);
       break;
     }
   }
@@ -682,60 +685,60 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           cascaded,
           LXB_CSS_PROPERTY_POSITION)) {
     if (wideFromType(d->type) == Wide::Inherit) {
-      builder.box().position = parent.box().position;
+      builder.SetPosition(parent.Position());
     } else if (wideFromType(d->type) == Wide::None) {
-      builder.box().position = d->type;
+      builder.SetPosition(d->type);
     } // initial/unset/revert -> Static，默认值已经是 static。
   }
   if (const auto* d = declared<lxb_css_property_box_sizing_t>(
           cascaded,
           LXB_CSS_PROPERTY_BOX_SIZING)) {
     if (wideFromType(d->type) == Wide::Inherit) {
-      builder.box().boxSizing = parent.box().boxSizing;
+      builder.BoxData().boxSizing = parent.BoxData().boxSizing;
     } else if (wideFromType(d->type) == Wide::None) {
-      builder.box().boxSizing = d->type;
+      builder.BoxData().boxSizing = d->type;
     }
   }
   if (const auto* d =
           declared<lxb_css_property_float_t>(cascaded, LXB_CSS_PROPERTY_FLOAT)) {
     if (wideFromType(d->type) == Wide::Inherit) {
-      builder.box().floatKind = parent.box().floatKind;
+      builder.VisualData().floating = parent.VisualData().floating;
     } else if (wideFromType(d->type) == Wide::None) {
-      builder.box().floatKind = d->type;
+      builder.VisualData().floating = d->type;
     }
   }
   if (const auto* d =
           declared<lxb_css_property_clear_t>(cascaded, LXB_CSS_PROPERTY_CLEAR)) {
     if (wideFromType(d->type) == Wide::Inherit) {
-      builder.box().clear = parent.box().clear;
+      builder.SetClear(parent.Clear());
     } else if (wideFromType(d->type) == Wide::Initial ||
                wideFromType(d->type) == Wide::Unset ||
                wideFromType(d->type) == Wide::Revert) {
-      builder.box().clear = LXB_CSS_CLEAR_NONE;
+      builder.SetClear(LXB_CSS_CLEAR_NONE);
     } else {
-      builder.box().clear = d->type;
+      builder.SetClear(d->type);
     }
   }
   if (const auto* z =
           declared<lxb_css_property_z_index_t>(cascaded, LXB_CSS_PROPERTY_Z_INDEX)) {
     switch (wideFromType(z->type)) {
     case Wide::Inherit:
-      builder.box().zIndex = parent.box().zIndex;
-      builder.box().zIndexAuto = parent.box().zIndexAuto;
+      builder.BoxData().zIndex = parent.BoxData().zIndex;
+      builder.BoxData().zIndexAuto = parent.BoxData().zIndexAuto;
       break;
     case Wide::Initial:
     case Wide::Unset:
     case Wide::Revert:
-      builder.box().zIndex = 0;
-      builder.box().zIndexAuto = true;
+      builder.BoxData().zIndex = 0;
+      builder.BoxData().zIndexAuto = true;
       break;
     case Wide::None:
       if (z->type == LXB_CSS_Z_INDEX__INTEGER) {
-        builder.box().zIndex = static_cast<int>(z->integer.num);
-        builder.box().zIndexAuto = false;
+        builder.BoxData().zIndex = static_cast<int>(z->integer.num);
+        builder.BoxData().zIndexAuto = false;
       } else {
-        builder.box().zIndex = 0;
-        builder.box().zIndexAuto = true;
+        builder.BoxData().zIndex = 0;
+        builder.BoxData().zIndexAuto = true;
       }
       break;
     }
@@ -745,14 +748,14 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_VISIBILITY)) {
     switch (wideFromType(d->type)) {
     case Wide::Initial:
-      builder.inheritedOther().visibility = LXB_CSS_VISIBILITY_VISIBLE;
+      builder.SetVisibility(LXB_CSS_VISIBILITY_VISIBLE);
       break;
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
       break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
-      builder.inheritedOther().visibility = d->type;
+      builder.SetVisibility(d->type);
       break;
     }
   }
@@ -765,12 +768,18 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     LengthValue v = resolveLP(cascaded, id, ctx, initial, parentVal, false, &present);
     if (present) slot = v;
   };
-  setBoxLP(LXB_CSS_PROPERTY_WIDTH, LengthValue::makeAuto(), parent.box().width, builder.box().width);
-  setBoxLP(LXB_CSS_PROPERTY_HEIGHT, LengthValue::makeAuto(), parent.box().height, builder.box().height);
-  setBoxLP(LXB_CSS_PROPERTY_MIN_WIDTH, LengthValue::makePx(0), parent.box().minWidth, builder.box().minWidth);
-  setBoxLP(LXB_CSS_PROPERTY_MIN_HEIGHT, LengthValue::makePx(0), parent.box().minHeight, builder.box().minHeight);
-  setBoxLP(LXB_CSS_PROPERTY_MAX_WIDTH, LengthValue::makeNone(), parent.box().maxWidth, builder.box().maxWidth);
-  setBoxLP(LXB_CSS_PROPERTY_MAX_HEIGHT, LengthValue::makeNone(), parent.box().maxHeight, builder.box().maxHeight);
+  setBoxLP(LXB_CSS_PROPERTY_WIDTH, LengthValue::makeAuto(),
+           parent.BoxData().width, builder.BoxData().width);
+  setBoxLP(LXB_CSS_PROPERTY_HEIGHT, LengthValue::makeAuto(),
+           parent.BoxData().height, builder.BoxData().height);
+  setBoxLP(LXB_CSS_PROPERTY_MIN_WIDTH, LengthValue::makePx(0),
+           parent.BoxData().minWidth, builder.BoxData().minWidth);
+  setBoxLP(LXB_CSS_PROPERTY_MIN_HEIGHT, LengthValue::makePx(0),
+           parent.BoxData().minHeight, builder.BoxData().minHeight);
+  setBoxLP(LXB_CSS_PROPERTY_MAX_WIDTH, LengthValue::makeNone(),
+           parent.BoxData().maxWidth, builder.BoxData().maxWidth);
+  setBoxLP(LXB_CSS_PROPERTY_MAX_HEIGHT, LengthValue::makeNone(),
+           parent.BoxData().maxHeight, builder.BoxData().maxHeight);
 
   // ---- Surround：margin / padding / inset（TRBL 物理边） -------------------
   struct SideProp {
@@ -794,16 +803,16 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
       {LXB_CSS_PROPERTY_LEFT, kLeft}};
 
   for (const auto& m : margins) {
-    LengthValue v = resolveLP(cascaded, m.id, ctx, LengthValue::makePx(0), parent.surround().margin[m.side], false, &present);
-    if (present) builder.surround().margin[m.side] = v;
+    LengthValue v = resolveLP(cascaded, m.id, ctx, LengthValue::makePx(0), parent.BoxData().margin[m.side], false, &present);
+    if (present) builder.BoxData().margin[m.side] = v;
   }
   for (const auto& p : paddings) {
-    LengthValue v = resolveLP(cascaded, p.id, ctx, LengthValue::makePx(0), parent.surround().padding[p.side], false, &present);
-    if (present) builder.surround().padding[p.side] = v;
+    LengthValue v = resolveLP(cascaded, p.id, ctx, LengthValue::makePx(0), parent.BoxData().padding[p.side], false, &present);
+    if (present) builder.BoxData().padding[p.side] = v;
   }
   for (const auto& in : insets) {
-    LengthValue v = resolveLP(cascaded, in.id, ctx, LengthValue::makeAuto(), parent.surround().inset[in.side], false, &present);
-    if (present) builder.surround().inset[in.side] = v;
+    LengthValue v = resolveLP(cascaded, in.id, ctx, LengthValue::makeAuto(), parent.SurroundData().inset[in.side], false, &present);
+    if (present) builder.SurroundData().inset[in.side] = v;
   }
 
   // ---- 继承 text 细节属性 -------------------------------------------------
@@ -812,14 +821,14 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_TEXT_ALIGN)) {
     switch (wideFromType(ta->type)) {
     case Wide::Initial:
-      builder.text().textAlign = LXB_CSS_TEXT_ALIGN_START;
+      builder.SetTextAlign(LXB_CSS_TEXT_ALIGN_START);
       break;
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
       break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
-      builder.text().textAlign = ta->type;
+      builder.SetTextAlign(ta->type);
       break;
     }
   }
@@ -828,14 +837,14 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_TEXT_ALIGN_ALL)) {
     switch (wideFromType(ta->type)) {
     case Wide::Initial:
-      builder.text().textAlign = LXB_CSS_TEXT_ALIGN_START;
+      builder.SetTextAlign(LXB_CSS_TEXT_ALIGN_START);
       break;
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
       break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
-      builder.text().textAlign = ta->type;
+      builder.SetTextAlign(ta->type);
       break;
     }
   }
@@ -844,14 +853,14 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_WHITE_SPACE)) {
     switch (wideFromType(ws->type)) {
     case Wide::Initial:
-      builder.text().whiteSpace = LXB_CSS_WHITE_SPACE_NORMAL;
+      builder.SetWhiteSpace(LXB_CSS_WHITE_SPACE_NORMAL);
       break;
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
       break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
-      builder.text().whiteSpace = ws->type;
+      builder.SetWhiteSpace(ws->type);
       break;
     }
   }
@@ -860,14 +869,15 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_TEXT_INDENT)) {
     switch (wideFromType(ti->type)) {
     case Wide::Initial:
-      builder.text().textIndent = LengthValue::makePx(0);
+      builder.RareInheritedData().textIndent = LengthValue::makePx(0);
       break;
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
       break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
-      builder.text().textIndent = resolveLengthPercentage(ti->length, ctx);
+      builder.RareInheritedData().textIndent =
+          resolveLengthPercentage(ti->length, ctx);
       break;
     }
   }
@@ -876,14 +886,14 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_LETTER_SPACING)) {
     switch (wideFromType(ls->type)) {
     case Wide::Initial:
-      builder.text().letterSpacing = LengthValue::makeAuto();
+      builder.InheritedData().letterSpacing = LengthValue::makeAuto();
       break;
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
       break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
-      builder.text().letterSpacing =
+      builder.InheritedData().letterSpacing =
           ls->type == LXB_CSS_LETTER_SPACING__LENGTH
               ? LengthValue::makePx(resolveLengthPx(ls->length, ctx))
               : LengthValue::makeAuto();
@@ -895,14 +905,14 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_WORD_SPACING)) {
     switch (wideFromType(ws->type)) {
     case Wide::Initial:
-      builder.text().wordSpacing = LengthValue::makePx(0);
+      builder.InheritedData().wordSpacing = LengthValue::makePx(0);
       break;
     case Wide::Inherit:
     case Wide::Unset:
     case Wide::Revert:
       break; // 继承：保留 inheritFrom() 已共享的父值。
     case Wide::None:
-      builder.text().wordSpacing =
+      builder.InheritedData().wordSpacing =
           ws->type == LXB_CSS_WORD_SPACING__LENGTH
               ? LengthValue::makePx(resolveLengthPx(ws->length, ctx))
               : LengthValue::makePx(0);
@@ -923,16 +933,24 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
       {LXB_CSS_PROPERTY_BORDER_LEFT_COLOR, kLeft}};
 
   for (const auto& b : borders) {
-    BorderEdge edge = resolveBorderEdge(cascaded, b.id, ctx, currentColor, parent.surround().border[b.side], &present);
+    resolveBorderEdge(cascaded, b.id, ctx, currentColor,
+                      parent.BoxData().borderWidth[b.side],
+                      parent.BoxData().borderStyle[b.side],
+                      parent.SurroundData().borderColor[b.side],
+                      builder.BoxData().borderWidth[b.side],
+                      builder.BoxData().borderStyle[b.side],
+                      builder.SurroundData().borderColor[b.side], &present);
     if (present) {
-      builder.surround().border[b.side] = edge;
+      continue;
     }
   }
   for (const auto& c : borderColors) {
-    resolveBorderColor(cascaded, c.id, currentColor, parent.surround().border[c.side], builder.surround().border[c.side]);
+    resolveBorderColor(cascaded, c.id, currentColor,
+                       parent.SurroundData().borderColor[c.side],
+                       builder.SurroundData().borderColor[c.side]);
   }
 
-  // ---- Visual：background-color、opacity、overflow ------------------------
+  // ---- background / svg / top-level overflow -----------------------------
   if (const auto* c = declared<lxb_css_property_background_color_t>(
           cascaded,
           LXB_CSS_PROPERTY_BACKGROUND_COLOR)) {
@@ -941,13 +959,16 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
     case Wide::Initial:
     case Wide::Unset:
     case Wide::Revert:
-      builder.visual().background = Color::transparent();
+      builder.BackgroundData().backgroundColor = Color::transparent();
       break;
     case Wide::Inherit:
-      builder.visual().background = parent.visual().background;
+      builder.BackgroundData().backgroundColor =
+          parent.BackgroundData().backgroundColor;
       break;
     case Wide::None:
-      if (convColor(*c, currentColor, out)) builder.visual().background = out;
+      if (convColor(*c, currentColor, out)) {
+        builder.BackgroundData().backgroundColor = out;
+      }
       break;
     }
   }
@@ -955,9 +976,10 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           cascaded,
           LXB_CSS_PROPERTY_OPACITY)) {
     if (o->type == LXB_CSS_VALUE__NUMBER) {
-      builder.visual().opacity = static_cast<float>(o->u.number.num);
+      builder.SvgData().opacity = static_cast<float>(o->u.number.num);
     } else if (o->type == LXB_CSS_VALUE__PERCENTAGE) {
-      builder.visual().opacity = static_cast<float>(o->u.percentage.num) / 100.0f;
+      builder.SvgData().opacity =
+          static_cast<float>(o->u.percentage.num) / 100.0f;
     }
   }
   if (const auto* d = declared<lxb_css_property_overflow_x_t>(
@@ -965,15 +987,15 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_OVERFLOW_X)) {
     switch (wideFromType(d->type)) {
     case Wide::Inherit:
-      builder.visual().overflowX = parent.visual().overflowX;
+      builder.SetOverflowX(parent.OverflowX());
       break;
     case Wide::Initial:
     case Wide::Unset:
     case Wide::Revert:
-      builder.visual().overflowX = LXB_CSS_OVERFLOW_X_VISIBLE;
+      builder.SetOverflowX(LXB_CSS_OVERFLOW_X_VISIBLE);
       break;
     case Wide::None:
-      builder.visual().overflowX = d->type;
+      builder.SetOverflowX(d->type);
       break;
     }
   }
@@ -982,15 +1004,15 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_OVERFLOW_Y)) {
     switch (wideFromType(d->type)) {
     case Wide::Inherit:
-      builder.visual().overflowY = parent.visual().overflowY;
+      builder.SetOverflowY(parent.OverflowY());
       break;
     case Wide::Initial:
     case Wide::Unset:
     case Wide::Revert:
-      builder.visual().overflowY = LXB_CSS_OVERFLOW_Y_VISIBLE;
+      builder.SetOverflowY(LXB_CSS_OVERFLOW_Y_VISIBLE);
       break;
     case Wide::None:
-      builder.visual().overflowY = d->type;
+      builder.SetOverflowY(d->type);
       break;
     }
   }
@@ -999,15 +1021,15 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_OVERFLOW_INLINE)) {
     switch (wideFromType(d->type)) {
     case Wide::Inherit:
-      builder.visual().overflowX = parent.visual().overflowX;
+      builder.SetOverflowX(parent.OverflowX());
       break;
     case Wide::Initial:
     case Wide::Unset:
     case Wide::Revert:
-      builder.visual().overflowX = LXB_CSS_OVERFLOW_X_VISIBLE;
+      builder.SetOverflowX(LXB_CSS_OVERFLOW_X_VISIBLE);
       break;
     case Wide::None:
-      builder.visual().overflowX = d->type;
+      builder.SetOverflowX(d->type);
       break;
     }
   }
@@ -1016,15 +1038,15 @@ StyleResolver::resolveElement(lxb_dom_element_t* element,
           LXB_CSS_PROPERTY_OVERFLOW_BLOCK)) {
     switch (wideFromType(d->type)) {
     case Wide::Inherit:
-      builder.visual().overflowY = parent.visual().overflowY;
+      builder.SetOverflowY(parent.OverflowY());
       break;
     case Wide::Initial:
     case Wide::Unset:
     case Wide::Revert:
-      builder.visual().overflowY = LXB_CSS_OVERFLOW_Y_VISIBLE;
+      builder.SetOverflowY(LXB_CSS_OVERFLOW_Y_VISIBLE);
       break;
     case Wide::None:
-      builder.visual().overflowY = d->type;
+      builder.SetOverflowY(d->type);
       break;
     }
   }
@@ -1040,8 +1062,10 @@ void StyleResolver::resolveSubtree(lxb_dom_element_t* element,
   lxb_dom_node_t* node = lxb_dom_interface_node(element);
   NodeState* state = ensureState(node);
   if (state == nullptr) {
+    releaseStyle(style);
     return;
   }
+  releaseStyle(state->style);
   state->style = style;
   state->context = outCtx;
   clearDirty(node);
@@ -1082,12 +1106,22 @@ StyleResolver::resolveElementIncremental(lxb_dom_element_t* element) {
   ComputedStyle* style = resolveElement(element, *parentStyle, *parentCtx, outCtx);
   NodeState* state = ensureState(node);
   if (state == nullptr) {
+    releaseStyle(style);
     return nullptr;
   }
+  releaseStyle(state->style);
   state->style = style;
   state->context = outCtx;
   clearDirty(node);
   return style;
+}
+
+void StyleResolver::releaseStyle(ComputedStyle* style) noexcept {
+  if (style == nullptr) {
+    return;
+  }
+  style->ReleaseArenaRefs(heap_);
+  heap_.freePod(style);
 }
 
 void StyleResolver::resolveSubtreeIncremental(lxb_dom_element_t* element) {
