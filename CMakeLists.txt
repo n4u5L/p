@@ -37,7 +37,7 @@ find_package(Lexbor REQUIRED)
 
 add_library(MyOptions INTERFACE)
 target_compile_options(MyOptions INTERFACE
-    $<$<CXX_COMPILER_ID:MSVC>:-W4;-permissive-;-Zc:__cplusplus>
+    $<$<CXX_COMPILER_ID:MSVC>:-W4;-permissive-;-Zc:__cplusplus;/utf-8>
 )
 target_compile_definitions(MyOptions INTERFACE
     $<$<CXX_COMPILER_ID:MSVC>:NOMINMAX>)
@@ -52,10 +52,9 @@ endif()
 # Self-built style engine (the "second half" lexbor does not provide).
 # Lexbor-only so it can be built/tested without the full Qt graphics stack.
 add_library(style STATIC
-    src/style/cascaded_style.cpp
-    src/style/property_meta.cpp
+    src/style/style_props.cpp
     src/style/length_resolve.cpp
-    src/style/style_heap.cpp
+    src/style/style_arena.cpp
     src/style/resolver.cpp
     src/style/style_engine.cpp
     src/style/ua_stylesheet.cpp

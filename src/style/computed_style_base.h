@@ -12,7 +12,7 @@
 #include <cstdint>
 #include <type_traits>
 
-#include "style_heap.h"
+#include "style_arena.h"
 #include "value_types.h"
 
 namespace style {

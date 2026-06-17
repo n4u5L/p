@@ -1,13 +1,16 @@
 #pragma once
 
-// 基于 Lexbor 分配器形态的 computed style arena。
+// 基于 lexbor 分配器的 computed style arena。
 //
 // Computed style 的生命周期独立于 CSS parser/stylesheet memory：
-//   * 固定大小、平凡析构的 style 对象走 lexbor_dobject_t。
+//   * 固定大小、平凡析构的 style 对象走 lexbor_dobject_t 对象池；
 //   * 字符串和后续 calc 这类变长数据走 lexbor_mraw_t。
 //
-// 易错点：allocPod() 只接受平凡析构类型。非平凡 C++ 容器会把 arena 的批量
-// clean 退回到逐对象析构，应先改成 arena 友好的数据形状。
+// 命名跟随 lexbor 习惯（mraw/dobject），用适度 C++ 的薄 RAII 封装这两个分配器：
+// 构造时建池、析构时整体释放、clear() 复用底层内存。
+//
+// 易错点：池只接受平凡析构类型（static_assert 保证）。非平凡 C++ 容器会让
+// arena 的批量 clean 退回到逐对象析构，应先改成 arena 友好的数据形状。
 
 #include <array>
 #include <cstddef>
@@ -79,13 +82,13 @@ STYLE_POOL_TRAIT(StyleVisualData, VisualData);
 
 #undef STYLE_POOL_TRAIT
 
-class StyleHeap {
+class StyleArena {
 public:
-  explicit StyleHeap(size_t prepareCount = 1024);
-  ~StyleHeap();
+  explicit StyleArena(size_t prepareCount = 1024);
+  ~StyleArena();
 
-  StyleHeap(const StyleHeap&) = delete;
-  StyleHeap& operator=(const StyleHeap&) = delete;
+  StyleArena(const StyleArena&) = delete;
+  StyleArena& operator=(const StyleArena&) = delete;
 
   void clear();
 
@@ -112,7 +115,7 @@ public:
   template <class T>
   void freePod(T* obj) noexcept {
     static_assert(std::is_trivially_destructible_v<T>,
-                  "StyleHeap pools only store trivially destructible objects");
+                  "StyleArena pools only store trivially destructible objects");
     if (obj == nullptr) {
       return;
     }
@@ -135,7 +138,7 @@ private:
   template <class T, class... Args>
   T* constructPod(Args&&... args) {
     static_assert(std::is_trivially_destructible_v<T>,
-                  "StyleHeap pools only store trivially destructible objects");
+                  "StyleArena pools only store trivially destructible objects");
     void* mem = lexbor_dobject_alloc(poolFor<T>());
     if (mem == nullptr) {
       throw std::bad_alloc();
@@ -156,5 +159,8 @@ private:
   size_t prepareCount_ = 0;
   InternEntry* internHead_ = nullptr;
 };
+
+// 过渡别名：历史代码沿用 StyleHeap 名称。新代码请直接用 StyleArena。
+using StyleHeap = StyleArena;
 
 } // namespace style

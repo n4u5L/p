@@ -25,10 +25,9 @@
 
 #include "lexbor/core/dobject.h"
 
-#include "cascaded_style.h"
 #include "computed_style.h"
 #include "length_resolve.h"
-#include "style_heap.h"
+#include "style_arena.h"
 
 // lexbor 前置声明。
 typedef struct lxb_html_document lxb_html_document_t;
@@ -104,7 +103,6 @@ private:
   void releaseStyle(ComputedStyle* style) noexcept;
 
   StyleHeap heap_;
-  CascadedStyleNormalizer cascadedStyleNormalizer_;
   lexbor_dobject_t* nodeStates_ = nullptr;
   uint32_t generation_ = 1;
   ComputedStyle initialStyle_;

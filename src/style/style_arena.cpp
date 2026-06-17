@@ -1,11 +1,11 @@
-#include "style_heap.h"
+#include "style_arena.h"
 
 #include <cstring>
 #include <stdexcept>
 
 namespace style {
 
-StyleHeap::StyleHeap(size_t prepareCount)
+StyleArena::StyleArena(size_t prepareCount)
     : prepareCount_(prepareCount < 64 ? 64 : prepareCount) {
   raw_ = lexbor_mraw_create();
   if (raw_ == nullptr) {
@@ -18,14 +18,14 @@ StyleHeap::StyleHeap(size_t prepareCount)
   }
 }
 
-StyleHeap::~StyleHeap() {
+StyleArena::~StyleArena() {
   for (lexbor_dobject_t*& pool : pools_) {
     pool = lexbor_dobject_destroy(pool, true);
   }
   raw_ = lexbor_mraw_destroy(raw_, true);
 }
 
-void* StyleHeap::allocRaw(size_t n) {
+void* StyleArena::allocRaw(size_t n) {
   void* mem = lexbor_mraw_alloc(raw_, n);
   if (mem == nullptr) {
     throw std::bad_alloc();
@@ -33,7 +33,7 @@ void* StyleHeap::allocRaw(size_t n) {
   return mem;
 }
 
-const char* StyleHeap::internString(const char* s, size_t len) {
+const char* StyleArena::internString(const char* s, size_t len) {
   if (const char* canonical = canonicalString(s, len)) {
     return canonical;
   }
@@ -51,7 +51,7 @@ const char* StyleHeap::internString(const char* s, size_t len) {
   return copy;
 }
 
-const char* StyleHeap::canonicalString(const char* s, size_t len) const {
+const char* StyleArena::canonicalString(const char* s, size_t len) const {
   if (len == sizeof(kFontFamilySerif) - 1 &&
       std::memcmp(s, kFontFamilySerif, len) == 0) {
     return kFontFamilySerif;
@@ -102,7 +102,7 @@ const char* StyleHeap::canonicalString(const char* s, size_t len) const {
   return nullptr;
 }
 
-void StyleHeap::clear() {
+void StyleArena::clear() {
   for (lexbor_dobject_t* pool : pools_) {
     if (pool != nullptr) {
       lexbor_dobject_clean(pool);
@@ -115,7 +115,7 @@ void StyleHeap::clear() {
   internHead_ = nullptr;
 }
 
-lexbor_dobject_t* StyleHeap::ensurePool(StylePoolKind kind, size_t structSize) {
+lexbor_dobject_t* StyleArena::ensurePool(StylePoolKind kind, size_t structSize) {
   const size_t index = static_cast<size_t>(kind);
   lexbor_dobject_t*& pool = pools_[index];
   if (pool != nullptr) {
