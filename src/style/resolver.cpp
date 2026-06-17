@@ -33,9 +33,6 @@ StyleResolver::~StyleResolver() {
 }
 
 void StyleResolver::beginDocument(const ResolveContext& rootCtx) {
-  if (nodeStates_ != nullptr) {
-    lexbor_dobject_clean(nodeStates_);
-  }
   ++generation_;
   if (generation_ == 0) {
     generation_ = 1;
@@ -61,8 +58,7 @@ ComputedStyle* StyleResolver::resolveElement(lxb_dom_element_t* element,
   DeclaredStyle declared(element);
 
   outCtx = parentCtx; // 子元素上下文基线；FontSize/LineHeight 阶段写回。
-  ApplyContext ac{declared, parent,  builder,
-                  heap_,    outCtx,  parent.InheritedData().color};
+  ApplyContext ac{declared, parent, builder, heap_, outCtx, parent.InheritedData().color};
 
   for (uint8_t ph = 0; ph < static_cast<uint8_t>(Phase::kCount); ++ph) {
     for (const PropDesc* d = propDescBegin(); d != propDescEnd(); ++d) {
@@ -104,7 +100,8 @@ void StyleResolver::resolveSubtree(lxb_dom_element_t* element,
   clearDirty(node);
 
   for (lxb_dom_node_t* child = lxb_dom_interface_node(element)->first_child;
-       child != nullptr; child = child->next) {
+       child != nullptr;
+       child = child->next) {
     if (child->type == LXB_DOM_NODE_TYPE_ELEMENT) {
       resolveSubtree(lxb_dom_interface_element(child), *style, outCtx);
     }
@@ -156,7 +153,8 @@ void StyleResolver::resolveSubtreeIncremental(lxb_dom_element_t* element) {
   }
 
   for (lxb_dom_node_t* child = lxb_dom_interface_node(element)->first_child;
-       child != nullptr; child = child->next) {
+       child != nullptr;
+       child = child->next) {
     if (child->type == LXB_DOM_NODE_TYPE_ELEMENT) {
       resolveSubtreeIncremental(lxb_dom_interface_element(child));
     }

@@ -17,6 +17,7 @@ namespace style {
 struct CustomPropEntry {
   const char* name = nullptr;
   const char* value = nullptr;
+  bool isInitial = false;
   CustomPropEntry* next = nullptr;
 };
 
@@ -33,8 +34,23 @@ struct CustomPropMap {
   }
 
   mutable uint32_t refCount = 0;
+  const CustomPropMap* parent = nullptr;
   CustomPropEntry* head = nullptr;
 };
+
+inline const char* lookupCustomProp(const CustomPropMap* map,
+                                    const char* internedName) {
+  for (const CustomPropMap* current = map; current != nullptr;
+       current = current->parent) {
+    for (CustomPropEntry* entry = current->head; entry != nullptr;
+         entry = entry->next) {
+      if (entry->name == internedName) {
+        return entry->value;
+      }
+    }
+  }
+  return nullptr;
+}
 
 class ComputedStyle : public ComputedStyleBase {
 public:
@@ -91,16 +107,8 @@ public:
   }
 
 private:
-  void attachCustomProps(const CustomPropMap* m) {
-    customProps_ = m;
-    if (customProps_ != nullptr) {
-      customProps_->addRef();
-    }
-  }
-
-  void ReleaseCustomProps(StyleHeap& heap) noexcept {
-    auto* props = const_cast<CustomPropMap*>(customProps_);
-    customProps_ = nullptr;
+  static void ReleaseCustomPropMap(CustomPropMap* props,
+                                   StyleHeap& heap) noexcept {
     if (props == nullptr || props->releaseRef() != 0) {
       return;
     }
@@ -111,7 +119,23 @@ private:
       heap.freePod(entry);
       entry = next;
     }
+    CustomPropMap* parent = const_cast<CustomPropMap*>(props->parent);
+    props->parent = nullptr;
     heap.freePod(props);
+    ReleaseCustomPropMap(parent, heap);
+  }
+
+  void attachCustomProps(const CustomPropMap* m) {
+    customProps_ = m;
+    if (customProps_ != nullptr) {
+      customProps_->addRef();
+    }
+  }
+
+  void ReleaseCustomProps(StyleHeap& heap) noexcept {
+    auto* props = const_cast<CustomPropMap*>(customProps_);
+    customProps_ = nullptr;
+    ReleaseCustomPropMap(props, heap);
   }
 
   const CustomPropMap* customProps_ = nullptr;
@@ -186,6 +210,10 @@ public:
 
   void SetCustomProps(const CustomPropMap& m) {
     CustomPropMap* copy = heap_.create<CustomPropMap>();
+    copy->parent = m.parent;
+    if (copy->parent != nullptr) {
+      copy->parent->addRef();
+    }
     CustomPropEntry** tail = &copy->head;
     for (CustomPropEntry* entry = m.head; entry != nullptr; entry = entry->next) {
       CustomPropEntry* newEntry = heap_.create<CustomPropEntry>(*entry);
@@ -200,6 +228,10 @@ public:
     const CustomPropMap* current = style_.customProps();
     CustomPropMap* copy = heap_.create<CustomPropMap>();
     if (current != nullptr) {
+      copy->parent = current->parent;
+      if (copy->parent != nullptr) {
+        copy->parent->addRef();
+      }
       CustomPropEntry** tail = &copy->head;
       for (CustomPropEntry* entry = current->head; entry != nullptr;
            entry = entry->next) {
@@ -211,6 +243,16 @@ public:
     }
     style_.setCustomPropsForArena(copy, heap_);
     return *copy;
+  }
+
+  CustomPropMap& CreateCustomPropsOverlay(const CustomPropMap* parent) {
+    CustomPropMap* overlay = heap_.create<CustomPropMap>();
+    overlay->parent = parent;
+    if (overlay->parent != nullptr) {
+      overlay->parent->addRef();
+    }
+    style_.setCustomPropsForArena(overlay, heap_);
+    return *overlay;
   }
 
   void SetCustomProp(const char* name, size_t nameLen, const char* value,
@@ -240,6 +282,9 @@ public:
 
   const CustomPropMap* customProps() const {
     return CustomProps();
+  }
+  CustomPropMap& createCustomPropsOverlay(const CustomPropMap* parent) {
+    return CreateCustomPropsOverlay(parent);
   }
   void setCustomProps(const CustomPropMap& m) {
     SetCustomProps(m);

@@ -37,6 +37,14 @@ public:
     return lxb_dom_element_style_by_id(element_, id);
   }
 
+  const lxb_css_rule_declaration_t* rawDeclaration(uint16_t id) const noexcept {
+    const lxb_css_rule_declaration_t* d = declaration(id);
+    return d != nullptr && d->type == LXB_CSS_PROPERTY__UNDEF &&
+                   d->u.undef != nullptr && d->u.undef->type == id
+               ? d
+               : nullptr;
+  }
+
   // 该 property id 胜出 declaration 的 specificity；用于 shorthand/longhand 仲裁。
   // 没有声明时返回 0（最低）。
   lxb_css_selector_specificity_t specificity(uint16_t id) const noexcept {
@@ -52,7 +60,8 @@ public:
   template <class T>
   const T* value(uint16_t id) const noexcept {
     const lxb_css_rule_declaration_t* d = declaration(id);
-    return d != nullptr ? static_cast<const T*>(d->u.user) : nullptr;
+    return d != nullptr && d->type == id ? static_cast<const T*>(d->u.user)
+                                         : nullptr;
   }
 
 private:
