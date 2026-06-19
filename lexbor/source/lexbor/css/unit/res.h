@@ -20,40 +20,176 @@
 
 static const lxb_css_data_t lxb_css_unit_data[LXB_CSS_UNIT__LAST_ENTRY] = 
 {
-    {(lxb_char_t *) "#undef", 6, LXB_CSS_UNIT__UNDEF},
-    {(lxb_char_t *) "Q", 1, LXB_CSS_UNIT_Q},
-    {(lxb_char_t *) "cm", 2, LXB_CSS_UNIT_CM},
-    {(lxb_char_t *) "in", 2, LXB_CSS_UNIT_IN},
-    {(lxb_char_t *) "mm", 2, LXB_CSS_UNIT_MM},
-    {(lxb_char_t *) "pc", 2, LXB_CSS_UNIT_PC},
-    {(lxb_char_t *) "pt", 2, LXB_CSS_UNIT_PT},
-    {(lxb_char_t *) "px", 2, LXB_CSS_UNIT_PX},
-    {(lxb_char_t *) "cap", 3, LXB_CSS_UNIT_CAP},
-    {(lxb_char_t *) "ch", 2, LXB_CSS_UNIT_CH},
-    {(lxb_char_t *) "em", 2, LXB_CSS_UNIT_EM},
-    {(lxb_char_t *) "ex", 2, LXB_CSS_UNIT_EX},
-    {(lxb_char_t *) "ic", 2, LXB_CSS_UNIT_IC},
-    {(lxb_char_t *) "lh", 2, LXB_CSS_UNIT_LH},
-    {(lxb_char_t *) "rem", 3, LXB_CSS_UNIT_REM},
-    {(lxb_char_t *) "rlh", 3, LXB_CSS_UNIT_RLH},
-    {(lxb_char_t *) "vb", 2, LXB_CSS_UNIT_VB},
-    {(lxb_char_t *) "vh", 2, LXB_CSS_UNIT_VH},
-    {(lxb_char_t *) "vi", 2, LXB_CSS_UNIT_VI},
-    {(lxb_char_t *) "vmax", 4, LXB_CSS_UNIT_VMAX},
-    {(lxb_char_t *) "vmin", 4, LXB_CSS_UNIT_VMIN},
-    {(lxb_char_t *) "vw", 2, LXB_CSS_UNIT_VW},
-    {(lxb_char_t *) "deg", 3, LXB_CSS_UNIT_DEG},
-    {(lxb_char_t *) "grad", 4, LXB_CSS_UNIT_GRAD},
-    {(lxb_char_t *) "rad", 3, LXB_CSS_UNIT_RAD},
-    {(lxb_char_t *) "turn", 4, LXB_CSS_UNIT_TURN},
-    {(lxb_char_t *) "Hz", 2, LXB_CSS_UNIT_HZ},
-    {(lxb_char_t *) "kHz", 3, LXB_CSS_UNIT_KHZ},
-    {(lxb_char_t *) "dpcm", 4, LXB_CSS_UNIT_DPCM},
-    {(lxb_char_t *) "dpi", 3, LXB_CSS_UNIT_DPI},
-    {(lxb_char_t *) "dppx", 4, LXB_CSS_UNIT_DPPX},
-    {(lxb_char_t *) "x", 1, LXB_CSS_UNIT_X},
-    {(lxb_char_t *) "ms", 2, LXB_CSS_UNIT_MS},
-    {(lxb_char_t *) "s", 1, LXB_CSS_UNIT_S}
+    {
+        .name = (lxb_char_t *) "#undef",
+        .length = 6,
+        .unique = LXB_CSS_UNIT__UNDEF
+    },
+    {
+        .name = (lxb_char_t *) "Q",
+        .length = 1,
+        .unique = LXB_CSS_UNIT_Q
+    },
+    {
+        .name = (lxb_char_t *) "cm",
+        .length = 2,
+        .unique = LXB_CSS_UNIT_CM
+    },
+    {
+        .name = (lxb_char_t *) "in",
+        .length = 2,
+        .unique = LXB_CSS_UNIT_IN
+    },
+    {
+        .name = (lxb_char_t *) "mm",
+        .length = 2,
+        .unique = LXB_CSS_UNIT_MM
+    },
+    {
+        .name = (lxb_char_t *) "pc",
+        .length = 2,
+        .unique = LXB_CSS_UNIT_PC
+    },
+    {
+        .name = (lxb_char_t *) "pt",
+        .length = 2,
+        .unique = LXB_CSS_UNIT_PT
+    },
+    {
+        .name = (lxb_char_t *) "px",
+        .length = 2,
+        .unique = LXB_CSS_UNIT_PX
+    },
+    {
+        .name = (lxb_char_t *) "cap",
+        .length = 3,
+        .unique = LXB_CSS_UNIT_CAP
+    },
+    {
+        .name = (lxb_char_t *) "ch",
+        .length = 2,
+        .unique = LXB_CSS_UNIT_CH
+    },
+    {
+        .name = (lxb_char_t *) "em",
+        .length = 2,
+        .unique = LXB_CSS_UNIT_EM
+    },
+    {
+        .name = (lxb_char_t *) "ex",
+        .length = 2,
+        .unique = LXB_CSS_UNIT_EX
+    },
+    {
+        .name = (lxb_char_t *) "ic",
+        .length = 2,
+        .unique = LXB_CSS_UNIT_IC
+    },
+    {
+        .name = (lxb_char_t *) "lh",
+        .length = 2,
+        .unique = LXB_CSS_UNIT_LH
+    },
+    {
+        .name = (lxb_char_t *) "rem",
+        .length = 3,
+        .unique = LXB_CSS_UNIT_REM
+    },
+    {
+        .name = (lxb_char_t *) "rlh",
+        .length = 3,
+        .unique = LXB_CSS_UNIT_RLH
+    },
+    {
+        .name = (lxb_char_t *) "vb",
+        .length = 2,
+        .unique = LXB_CSS_UNIT_VB
+    },
+    {
+        .name = (lxb_char_t *) "vh",
+        .length = 2,
+        .unique = LXB_CSS_UNIT_VH
+    },
+    {
+        .name = (lxb_char_t *) "vi",
+        .length = 2,
+        .unique = LXB_CSS_UNIT_VI
+    },
+    {
+        .name = (lxb_char_t *) "vmax",
+        .length = 4,
+        .unique = LXB_CSS_UNIT_VMAX
+    },
+    {
+        .name = (lxb_char_t *) "vmin",
+        .length = 4,
+        .unique = LXB_CSS_UNIT_VMIN
+    },
+    {
+        .name = (lxb_char_t *) "vw",
+        .length = 2,
+        .unique = LXB_CSS_UNIT_VW
+    },
+    {
+        .name = (lxb_char_t *) "deg",
+        .length = 3,
+        .unique = LXB_CSS_UNIT_DEG
+    },
+    {
+        .name = (lxb_char_t *) "grad",
+        .length = 4,
+        .unique = LXB_CSS_UNIT_GRAD
+    },
+    {
+        .name = (lxb_char_t *) "rad",
+        .length = 3,
+        .unique = LXB_CSS_UNIT_RAD
+    },
+    {
+        .name = (lxb_char_t *) "turn",
+        .length = 4,
+        .unique = LXB_CSS_UNIT_TURN
+    },
+    {
+        .name = (lxb_char_t *) "Hz",
+        .length = 2,
+        .unique = LXB_CSS_UNIT_HZ
+    },
+    {
+        .name = (lxb_char_t *) "kHz",
+        .length = 3,
+        .unique = LXB_CSS_UNIT_KHZ
+    },
+    {
+        .name = (lxb_char_t *) "dpcm",
+        .length = 4,
+        .unique = LXB_CSS_UNIT_DPCM
+    },
+    {
+        .name = (lxb_char_t *) "dpi",
+        .length = 3,
+        .unique = LXB_CSS_UNIT_DPI
+    },
+    {
+        .name = (lxb_char_t *) "dppx",
+        .length = 4,
+        .unique = LXB_CSS_UNIT_DPPX
+    },
+    {
+        .name = (lxb_char_t *) "x",
+        .length = 1,
+        .unique = LXB_CSS_UNIT_X
+    },
+    {
+        .name = (lxb_char_t *) "ms",
+        .length = 2,
+        .unique = LXB_CSS_UNIT_MS
+    },
+    {
+        .name = (lxb_char_t *) "s",
+        .length = 1,
+        .unique = LXB_CSS_UNIT_S
+    }
 };
 
 static const lexbor_shs_entry_t lxb_css_unit_absolute_relative_shs[84] = 

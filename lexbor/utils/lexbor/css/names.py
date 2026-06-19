@@ -258,6 +258,37 @@ compiles = [
     ["property", styles, True]
 ]
 
+inherited_styles = {
+    "color",
+    "direction",
+    "font-family",
+    "font-size",
+    "font-stretch",
+    "font-style",
+    "font-weight",
+    "hanging-punctuation",
+    "hyphens",
+    "letter-spacing",
+    "line-break",
+    "line-height",
+    "overflow-wrap",
+    "tab-size",
+    "text-align",
+    "text-align-all",
+    "text-align-last",
+    "text-combine-upright",
+    "text-indent",
+    "text-justify",
+    "text-orientation",
+    "text-transform",
+    "visibility",
+    "white-space",
+    "word-break",
+    "word-spacing",
+    "word-wrap",
+    "writing-mode",
+}
+
 global_values = {
     "initial": [], "inherit": [], "unset": [], "revert": []
 }
@@ -311,6 +342,42 @@ class Pseudo:
     value_const_tmp = "tmp/value_const.h"
     value_res_tmp = "tmp/value_res.h"
 
+    def make_property_data(self, name, length, unique, state,
+                           create, destroy, serialize, initial, inherited):
+        return ("{{\n"
+                "        .name = (lxb_char_t *) \"{}\",\n"
+                "        .length = {},\n"
+                "        .unique = {},\n"
+                "        .state = {},\n"
+                "        .create = {},\n"
+                "        .destroy = {},\n"
+                "        .serialize = {},\n"
+                "        .initial = {},\n"
+                "        .inherited = {}\n"
+                "    }}".format(name, length, unique, state, create, destroy,
+                                serialize, initial, inherited))
+
+    def make_at_rule_data(self, name, length, unique, cbs,
+                          create, destroy, serialize, initial):
+        return ("{{\n"
+                "        .name = (lxb_char_t *) \"{}\",\n"
+                "        .length = {},\n"
+                "        .unique = {},\n"
+                "        .cbs = {},\n"
+                "        .create = {},\n"
+                "        .destroy = {},\n"
+                "        .serialize = {},\n"
+                "        .initial = {}\n"
+                "    }}".format(name, length, unique, cbs, create, destroy,
+                                serialize, initial))
+
+    def make_data(self, name, length, unique):
+        return ("{{\n"
+                "        .name = (lxb_char_t *) \"{}\",\n"
+                "        .length = {},\n"
+                "        .unique = {}\n"
+                "    }}".format(name, length, unique))
+
     def make(self, prefix, values, is_at_rule):
         idx = 0
         entries = []
@@ -350,24 +417,42 @@ class Pseudo:
             serialize = "lxb_css_{}_{}_serialize".format(prefix, name)
 
             if name == "_undef":
-                res.append("{{(lxb_char_t *) \"#undef\", 6, {}, {},\n"
-                           "     {}, {}, {}, {}}}".format(
-                               enum_name, func_name, create, destroy, serialize,
-                               "(void *) (uintptr_t) " + enum_name
-                            ))
+                initial = "(void *) (uintptr_t) " + enum_name
+                if is_at_rule:
+                    res.append(self.make_at_rule_data("#undef", 6, enum_name,
+                                                      func_name, create, destroy,
+                                                      serialize, initial))
+                else:
+                    res.append(self.make_property_data("#undef", 6, enum_name,
+                                                       func_name, create, destroy,
+                                                       serialize, initial,
+                                                       "false"))
             elif name == "_custom":
-                res.append("{{(lxb_char_t *) \"#сustom\", 7, {}, {},\n"
-                           "     {}, {}, {}, {}}}".format(
-                               enum_name, func_name, create, destroy, serialize,
-                               "(void *) (uintptr_t) " + enum_name
-                            ))
+                initial = "(void *) (uintptr_t) " + enum_name
+                if is_at_rule:
+                    res.append(self.make_at_rule_data("#сustom", 7, enum_name,
+                                                      func_name, create, destroy,
+                                                      serialize, initial))
+                else:
+                    res.append(self.make_property_data("#сustom", 7, enum_name,
+                                                       func_name, create, destroy,
+                                                       serialize, initial,
+                                                       "false"))
             elif "hide" not in values[origin] or values[origin]["hide"] == False:
-                res.append("{{(lxb_char_t *) \"{}\", {}, {}, {},\n"
-                           "     {}, {}, {},\n"
-                           "     {}}}".format(origin, len(name),
-                                enum_name, func_name, create, destroy, serialize,
-                                values[origin]["initial"]
-                            ))
+                if is_at_rule:
+                    res.append(self.make_at_rule_data(origin, len(name), enum_name,
+                                                      func_name, create, destroy,
+                                                      serialize,
+                                                      values[origin]["initial"]))
+                else:
+                    inherited = values[origin].get("inherited",
+                                                   origin in inherited_styles)
+                    inherited = "true" if inherited else "false"
+
+                    res.append(self.make_property_data(origin, len(name), enum_name,
+                                                       func_name, create, destroy,
+                                                       serialize, values[origin]["initial"],
+                                                       inherited))
 
                 entries.append({"key": origin,
                                 "value": "(void *) &{}[{}]".format(data_name, enum_name)})
@@ -421,7 +506,7 @@ class Pseudo:
 
         base_name = self.make_enum_name("value", "_undef")
         all_props_enum.append(base_name, "0x{0:04x}".format(all_vals["_undef"]))
-        res.append("{{(lxb_char_t *) \"{}\", {}, {}}}".format("_undef", len("_undef"), base_name))
+        res.append(self.make_data("_undef", len("_undef"), base_name))
 
         for val in global_values:
             all_vals[val] = values_idx
@@ -430,7 +515,7 @@ class Pseudo:
             base_name = self.make_enum_name("value", val)
             all_props_enum.append(base_name, "0x{0:04x}".format(all_vals[val]))
             vals_hash.append({"key": val.lower(), "value": "(void *) {}".format(base_name)})
-            res.append("{{(lxb_char_t *) \"{}\", {}, {}}}".format(val, len(val), base_name))
+            res.append(self.make_data(val, len(val), base_name))
 
         for name in arr:
             if "values" not in values[name]:
@@ -453,7 +538,7 @@ class Pseudo:
                     all_props_enum.append(base_name, "0x{0:04x}".format(all_vals[val]))
                     vals_hash.append({"key": val.lower(), "value": "(void *) {}".format(base_name)})
 
-                    res.append("{{(lxb_char_t *) \"{}\", {}, {}}}".format(val, len(val), base_name))
+                    res.append(self.make_data(val, len(val), base_name))
 
                 enum_name = self.make_enum_name(name, val)
                 prop_enum.append(enum_name, base_name)
@@ -492,7 +577,7 @@ class Pseudo:
         res = LXB.Res("lxb_css_data_t", data_name, False,
                       self.make_enum_name(prefix, "_LAST_ENTRY"))
 
-        res.append("{{(lxb_char_t *) \"#undef\", 6, {}}}".format(enum_name))
+        res.append(self.make_data("#undef", 6, enum_name))
 
         for (title, arr) in values:
             entries = []
@@ -517,8 +602,7 @@ class Pseudo:
                     frmt_enum.append(enum_name, "0x{0:04x}".format(idx))
                     idx += 1
 
-                    res.append("{{(lxb_char_t *) \"{}\", {}, {}}}".format(name, len(name),
-                                                                          enum_name))
+                    res.append(self.make_data(name, len(name), enum_name))
 
                     entries.append({"key": name.lower(),
                                     "value": "(void *) &{}[{}]".format(data_name, enum_name)})

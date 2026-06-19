@@ -19,379 +19,1871 @@
 
 static const lxb_css_data_t lxb_css_value_data[LXB_CSS_VALUE__LAST_ENTRY] = 
 {
-    {(lxb_char_t *) "_undef", 6, LXB_CSS_VALUE__UNDEF},
-    {(lxb_char_t *) "initial", 7, LXB_CSS_VALUE_INITIAL},
-    {(lxb_char_t *) "inherit", 7, LXB_CSS_VALUE_INHERIT},
-    {(lxb_char_t *) "unset", 5, LXB_CSS_VALUE_UNSET},
-    {(lxb_char_t *) "revert", 6, LXB_CSS_VALUE_REVERT},
-    {(lxb_char_t *) "flex-start", 10, LXB_CSS_VALUE_FLEX_START},
-    {(lxb_char_t *) "flex-end", 8, LXB_CSS_VALUE_FLEX_END},
-    {(lxb_char_t *) "center", 6, LXB_CSS_VALUE_CENTER},
-    {(lxb_char_t *) "space-between", 13, LXB_CSS_VALUE_SPACE_BETWEEN},
-    {(lxb_char_t *) "space-around", 12, LXB_CSS_VALUE_SPACE_AROUND},
-    {(lxb_char_t *) "stretch", 7, LXB_CSS_VALUE_STRETCH},
-    {(lxb_char_t *) "baseline", 8, LXB_CSS_VALUE_BASELINE},
-    {(lxb_char_t *) "auto", 4, LXB_CSS_VALUE_AUTO},
-    {(lxb_char_t *) "text-bottom", 11, LXB_CSS_VALUE_TEXT_BOTTOM},
-    {(lxb_char_t *) "alphabetic", 10, LXB_CSS_VALUE_ALPHABETIC},
-    {(lxb_char_t *) "ideographic", 11, LXB_CSS_VALUE_IDEOGRAPHIC},
-    {(lxb_char_t *) "middle", 6, LXB_CSS_VALUE_MIDDLE},
-    {(lxb_char_t *) "central", 7, LXB_CSS_VALUE_CENTRAL},
-    {(lxb_char_t *) "mathematical", 12, LXB_CSS_VALUE_MATHEMATICAL},
-    {(lxb_char_t *) "text-top", 8, LXB_CSS_VALUE_TEXT_TOP},
-    {(lxb_char_t *) "_length", 7, LXB_CSS_VALUE__LENGTH},
-    {(lxb_char_t *) "_percentage", 11, LXB_CSS_VALUE__PERCENTAGE},
-    {(lxb_char_t *) "sub", 3, LXB_CSS_VALUE_SUB},
-    {(lxb_char_t *) "super", 5, LXB_CSS_VALUE_SUPER},
-    {(lxb_char_t *) "top", 3, LXB_CSS_VALUE_TOP},
-    {(lxb_char_t *) "bottom", 6, LXB_CSS_VALUE_BOTTOM},
-    {(lxb_char_t *) "first", 5, LXB_CSS_VALUE_FIRST},
-    {(lxb_char_t *) "last", 4, LXB_CSS_VALUE_LAST},
-    {(lxb_char_t *) "thin", 4, LXB_CSS_VALUE_THIN},
-    {(lxb_char_t *) "medium", 6, LXB_CSS_VALUE_MEDIUM},
-    {(lxb_char_t *) "thick", 5, LXB_CSS_VALUE_THICK},
-    {(lxb_char_t *) "none", 4, LXB_CSS_VALUE_NONE},
-    {(lxb_char_t *) "hidden", 6, LXB_CSS_VALUE_HIDDEN},
-    {(lxb_char_t *) "dotted", 6, LXB_CSS_VALUE_DOTTED},
-    {(lxb_char_t *) "dashed", 6, LXB_CSS_VALUE_DASHED},
-    {(lxb_char_t *) "solid", 5, LXB_CSS_VALUE_SOLID},
-    {(lxb_char_t *) "double", 6, LXB_CSS_VALUE_DOUBLE},
-    {(lxb_char_t *) "groove", 6, LXB_CSS_VALUE_GROOVE},
-    {(lxb_char_t *) "ridge", 5, LXB_CSS_VALUE_RIDGE},
-    {(lxb_char_t *) "inset", 5, LXB_CSS_VALUE_INSET},
-    {(lxb_char_t *) "outset", 6, LXB_CSS_VALUE_OUTSET},
-    {(lxb_char_t *) "content-box", 11, LXB_CSS_VALUE_CONTENT_BOX},
-    {(lxb_char_t *) "border-box", 10, LXB_CSS_VALUE_BORDER_BOX},
-    {(lxb_char_t *) "inline-start", 12, LXB_CSS_VALUE_INLINE_START},
-    {(lxb_char_t *) "inline-end", 10, LXB_CSS_VALUE_INLINE_END},
-    {(lxb_char_t *) "block-start", 11, LXB_CSS_VALUE_BLOCK_START},
-    {(lxb_char_t *) "block-end", 9, LXB_CSS_VALUE_BLOCK_END},
-    {(lxb_char_t *) "left", 4, LXB_CSS_VALUE_LEFT},
-    {(lxb_char_t *) "right", 5, LXB_CSS_VALUE_RIGHT},
-    {(lxb_char_t *) "currentcolor", 12, LXB_CSS_VALUE_CURRENTCOLOR},
-    {(lxb_char_t *) "transparent", 11, LXB_CSS_VALUE_TRANSPARENT},
-    {(lxb_char_t *) "hex", 3, LXB_CSS_VALUE_HEX},
-    {(lxb_char_t *) "aliceblue", 9, LXB_CSS_VALUE_ALICEBLUE},
-    {(lxb_char_t *) "antiquewhite", 12, LXB_CSS_VALUE_ANTIQUEWHITE},
-    {(lxb_char_t *) "aqua", 4, LXB_CSS_VALUE_AQUA},
-    {(lxb_char_t *) "aquamarine", 10, LXB_CSS_VALUE_AQUAMARINE},
-    {(lxb_char_t *) "azure", 5, LXB_CSS_VALUE_AZURE},
-    {(lxb_char_t *) "beige", 5, LXB_CSS_VALUE_BEIGE},
-    {(lxb_char_t *) "bisque", 6, LXB_CSS_VALUE_BISQUE},
-    {(lxb_char_t *) "black", 5, LXB_CSS_VALUE_BLACK},
-    {(lxb_char_t *) "blanchedalmond", 14, LXB_CSS_VALUE_BLANCHEDALMOND},
-    {(lxb_char_t *) "blue", 4, LXB_CSS_VALUE_BLUE},
-    {(lxb_char_t *) "blueviolet", 10, LXB_CSS_VALUE_BLUEVIOLET},
-    {(lxb_char_t *) "brown", 5, LXB_CSS_VALUE_BROWN},
-    {(lxb_char_t *) "burlywood", 9, LXB_CSS_VALUE_BURLYWOOD},
-    {(lxb_char_t *) "cadetblue", 9, LXB_CSS_VALUE_CADETBLUE},
-    {(lxb_char_t *) "chartreuse", 10, LXB_CSS_VALUE_CHARTREUSE},
-    {(lxb_char_t *) "chocolate", 9, LXB_CSS_VALUE_CHOCOLATE},
-    {(lxb_char_t *) "coral", 5, LXB_CSS_VALUE_CORAL},
-    {(lxb_char_t *) "cornflowerblue", 14, LXB_CSS_VALUE_CORNFLOWERBLUE},
-    {(lxb_char_t *) "cornsilk", 8, LXB_CSS_VALUE_CORNSILK},
-    {(lxb_char_t *) "crimson", 7, LXB_CSS_VALUE_CRIMSON},
-    {(lxb_char_t *) "cyan", 4, LXB_CSS_VALUE_CYAN},
-    {(lxb_char_t *) "darkblue", 8, LXB_CSS_VALUE_DARKBLUE},
-    {(lxb_char_t *) "darkcyan", 8, LXB_CSS_VALUE_DARKCYAN},
-    {(lxb_char_t *) "darkgoldenrod", 13, LXB_CSS_VALUE_DARKGOLDENROD},
-    {(lxb_char_t *) "darkgray", 8, LXB_CSS_VALUE_DARKGRAY},
-    {(lxb_char_t *) "darkgreen", 9, LXB_CSS_VALUE_DARKGREEN},
-    {(lxb_char_t *) "darkgrey", 8, LXB_CSS_VALUE_DARKGREY},
-    {(lxb_char_t *) "darkkhaki", 9, LXB_CSS_VALUE_DARKKHAKI},
-    {(lxb_char_t *) "darkmagenta", 11, LXB_CSS_VALUE_DARKMAGENTA},
-    {(lxb_char_t *) "darkolivegreen", 14, LXB_CSS_VALUE_DARKOLIVEGREEN},
-    {(lxb_char_t *) "darkorange", 10, LXB_CSS_VALUE_DARKORANGE},
-    {(lxb_char_t *) "darkorchid", 10, LXB_CSS_VALUE_DARKORCHID},
-    {(lxb_char_t *) "darkred", 7, LXB_CSS_VALUE_DARKRED},
-    {(lxb_char_t *) "darksalmon", 10, LXB_CSS_VALUE_DARKSALMON},
-    {(lxb_char_t *) "darkseagreen", 12, LXB_CSS_VALUE_DARKSEAGREEN},
-    {(lxb_char_t *) "darkslateblue", 13, LXB_CSS_VALUE_DARKSLATEBLUE},
-    {(lxb_char_t *) "darkslategray", 13, LXB_CSS_VALUE_DARKSLATEGRAY},
-    {(lxb_char_t *) "darkslategrey", 13, LXB_CSS_VALUE_DARKSLATEGREY},
-    {(lxb_char_t *) "darkturquoise", 13, LXB_CSS_VALUE_DARKTURQUOISE},
-    {(lxb_char_t *) "darkviolet", 10, LXB_CSS_VALUE_DARKVIOLET},
-    {(lxb_char_t *) "deeppink", 8, LXB_CSS_VALUE_DEEPPINK},
-    {(lxb_char_t *) "deepskyblue", 11, LXB_CSS_VALUE_DEEPSKYBLUE},
-    {(lxb_char_t *) "dimgray", 7, LXB_CSS_VALUE_DIMGRAY},
-    {(lxb_char_t *) "dimgrey", 7, LXB_CSS_VALUE_DIMGREY},
-    {(lxb_char_t *) "dodgerblue", 10, LXB_CSS_VALUE_DODGERBLUE},
-    {(lxb_char_t *) "firebrick", 9, LXB_CSS_VALUE_FIREBRICK},
-    {(lxb_char_t *) "floralwhite", 11, LXB_CSS_VALUE_FLORALWHITE},
-    {(lxb_char_t *) "forestgreen", 11, LXB_CSS_VALUE_FORESTGREEN},
-    {(lxb_char_t *) "fuchsia", 7, LXB_CSS_VALUE_FUCHSIA},
-    {(lxb_char_t *) "gainsboro", 9, LXB_CSS_VALUE_GAINSBORO},
-    {(lxb_char_t *) "ghostwhite", 10, LXB_CSS_VALUE_GHOSTWHITE},
-    {(lxb_char_t *) "gold", 4, LXB_CSS_VALUE_GOLD},
-    {(lxb_char_t *) "goldenrod", 9, LXB_CSS_VALUE_GOLDENROD},
-    {(lxb_char_t *) "gray", 4, LXB_CSS_VALUE_GRAY},
-    {(lxb_char_t *) "green", 5, LXB_CSS_VALUE_GREEN},
-    {(lxb_char_t *) "greenyellow", 11, LXB_CSS_VALUE_GREENYELLOW},
-    {(lxb_char_t *) "grey", 4, LXB_CSS_VALUE_GREY},
-    {(lxb_char_t *) "honeydew", 8, LXB_CSS_VALUE_HONEYDEW},
-    {(lxb_char_t *) "hotpink", 7, LXB_CSS_VALUE_HOTPINK},
-    {(lxb_char_t *) "indianred", 9, LXB_CSS_VALUE_INDIANRED},
-    {(lxb_char_t *) "indigo", 6, LXB_CSS_VALUE_INDIGO},
-    {(lxb_char_t *) "ivory", 5, LXB_CSS_VALUE_IVORY},
-    {(lxb_char_t *) "khaki", 5, LXB_CSS_VALUE_KHAKI},
-    {(lxb_char_t *) "lavender", 8, LXB_CSS_VALUE_LAVENDER},
-    {(lxb_char_t *) "lavenderblush", 13, LXB_CSS_VALUE_LAVENDERBLUSH},
-    {(lxb_char_t *) "lawngreen", 9, LXB_CSS_VALUE_LAWNGREEN},
-    {(lxb_char_t *) "lemonchiffon", 12, LXB_CSS_VALUE_LEMONCHIFFON},
-    {(lxb_char_t *) "lightblue", 9, LXB_CSS_VALUE_LIGHTBLUE},
-    {(lxb_char_t *) "lightcoral", 10, LXB_CSS_VALUE_LIGHTCORAL},
-    {(lxb_char_t *) "lightcyan", 9, LXB_CSS_VALUE_LIGHTCYAN},
-    {(lxb_char_t *) "lightgoldenrodyellow", 20, LXB_CSS_VALUE_LIGHTGOLDENRODYELLOW},
-    {(lxb_char_t *) "lightgray", 9, LXB_CSS_VALUE_LIGHTGRAY},
-    {(lxb_char_t *) "lightgreen", 10, LXB_CSS_VALUE_LIGHTGREEN},
-    {(lxb_char_t *) "lightgrey", 9, LXB_CSS_VALUE_LIGHTGREY},
-    {(lxb_char_t *) "lightpink", 9, LXB_CSS_VALUE_LIGHTPINK},
-    {(lxb_char_t *) "lightsalmon", 11, LXB_CSS_VALUE_LIGHTSALMON},
-    {(lxb_char_t *) "lightseagreen", 13, LXB_CSS_VALUE_LIGHTSEAGREEN},
-    {(lxb_char_t *) "lightskyblue", 12, LXB_CSS_VALUE_LIGHTSKYBLUE},
-    {(lxb_char_t *) "lightslategray", 14, LXB_CSS_VALUE_LIGHTSLATEGRAY},
-    {(lxb_char_t *) "lightslategrey", 14, LXB_CSS_VALUE_LIGHTSLATEGREY},
-    {(lxb_char_t *) "lightsteelblue", 14, LXB_CSS_VALUE_LIGHTSTEELBLUE},
-    {(lxb_char_t *) "lightyellow", 11, LXB_CSS_VALUE_LIGHTYELLOW},
-    {(lxb_char_t *) "lime", 4, LXB_CSS_VALUE_LIME},
-    {(lxb_char_t *) "limegreen", 9, LXB_CSS_VALUE_LIMEGREEN},
-    {(lxb_char_t *) "linen", 5, LXB_CSS_VALUE_LINEN},
-    {(lxb_char_t *) "magenta", 7, LXB_CSS_VALUE_MAGENTA},
-    {(lxb_char_t *) "maroon", 6, LXB_CSS_VALUE_MAROON},
-    {(lxb_char_t *) "mediumaquamarine", 16, LXB_CSS_VALUE_MEDIUMAQUAMARINE},
-    {(lxb_char_t *) "mediumblue", 10, LXB_CSS_VALUE_MEDIUMBLUE},
-    {(lxb_char_t *) "mediumorchid", 12, LXB_CSS_VALUE_MEDIUMORCHID},
-    {(lxb_char_t *) "mediumpurple", 12, LXB_CSS_VALUE_MEDIUMPURPLE},
-    {(lxb_char_t *) "mediumseagreen", 14, LXB_CSS_VALUE_MEDIUMSEAGREEN},
-    {(lxb_char_t *) "mediumslateblue", 15, LXB_CSS_VALUE_MEDIUMSLATEBLUE},
-    {(lxb_char_t *) "mediumspringgreen", 17, LXB_CSS_VALUE_MEDIUMSPRINGGREEN},
-    {(lxb_char_t *) "mediumturquoise", 15, LXB_CSS_VALUE_MEDIUMTURQUOISE},
-    {(lxb_char_t *) "mediumvioletred", 15, LXB_CSS_VALUE_MEDIUMVIOLETRED},
-    {(lxb_char_t *) "midnightblue", 12, LXB_CSS_VALUE_MIDNIGHTBLUE},
-    {(lxb_char_t *) "mintcream", 9, LXB_CSS_VALUE_MINTCREAM},
-    {(lxb_char_t *) "mistyrose", 9, LXB_CSS_VALUE_MISTYROSE},
-    {(lxb_char_t *) "moccasin", 8, LXB_CSS_VALUE_MOCCASIN},
-    {(lxb_char_t *) "navajowhite", 11, LXB_CSS_VALUE_NAVAJOWHITE},
-    {(lxb_char_t *) "navy", 4, LXB_CSS_VALUE_NAVY},
-    {(lxb_char_t *) "oldlace", 7, LXB_CSS_VALUE_OLDLACE},
-    {(lxb_char_t *) "olive", 5, LXB_CSS_VALUE_OLIVE},
-    {(lxb_char_t *) "olivedrab", 9, LXB_CSS_VALUE_OLIVEDRAB},
-    {(lxb_char_t *) "orange", 6, LXB_CSS_VALUE_ORANGE},
-    {(lxb_char_t *) "orangered", 9, LXB_CSS_VALUE_ORANGERED},
-    {(lxb_char_t *) "orchid", 6, LXB_CSS_VALUE_ORCHID},
-    {(lxb_char_t *) "palegoldenrod", 13, LXB_CSS_VALUE_PALEGOLDENROD},
-    {(lxb_char_t *) "palegreen", 9, LXB_CSS_VALUE_PALEGREEN},
-    {(lxb_char_t *) "paleturquoise", 13, LXB_CSS_VALUE_PALETURQUOISE},
-    {(lxb_char_t *) "palevioletred", 13, LXB_CSS_VALUE_PALEVIOLETRED},
-    {(lxb_char_t *) "papayawhip", 10, LXB_CSS_VALUE_PAPAYAWHIP},
-    {(lxb_char_t *) "peachpuff", 9, LXB_CSS_VALUE_PEACHPUFF},
-    {(lxb_char_t *) "peru", 4, LXB_CSS_VALUE_PERU},
-    {(lxb_char_t *) "pink", 4, LXB_CSS_VALUE_PINK},
-    {(lxb_char_t *) "plum", 4, LXB_CSS_VALUE_PLUM},
-    {(lxb_char_t *) "powderblue", 10, LXB_CSS_VALUE_POWDERBLUE},
-    {(lxb_char_t *) "purple", 6, LXB_CSS_VALUE_PURPLE},
-    {(lxb_char_t *) "rebeccapurple", 13, LXB_CSS_VALUE_REBECCAPURPLE},
-    {(lxb_char_t *) "red", 3, LXB_CSS_VALUE_RED},
-    {(lxb_char_t *) "rosybrown", 9, LXB_CSS_VALUE_ROSYBROWN},
-    {(lxb_char_t *) "royalblue", 9, LXB_CSS_VALUE_ROYALBLUE},
-    {(lxb_char_t *) "saddlebrown", 11, LXB_CSS_VALUE_SADDLEBROWN},
-    {(lxb_char_t *) "salmon", 6, LXB_CSS_VALUE_SALMON},
-    {(lxb_char_t *) "sandybrown", 10, LXB_CSS_VALUE_SANDYBROWN},
-    {(lxb_char_t *) "seagreen", 8, LXB_CSS_VALUE_SEAGREEN},
-    {(lxb_char_t *) "seashell", 8, LXB_CSS_VALUE_SEASHELL},
-    {(lxb_char_t *) "sienna", 6, LXB_CSS_VALUE_SIENNA},
-    {(lxb_char_t *) "silver", 6, LXB_CSS_VALUE_SILVER},
-    {(lxb_char_t *) "skyblue", 7, LXB_CSS_VALUE_SKYBLUE},
-    {(lxb_char_t *) "slateblue", 9, LXB_CSS_VALUE_SLATEBLUE},
-    {(lxb_char_t *) "slategray", 9, LXB_CSS_VALUE_SLATEGRAY},
-    {(lxb_char_t *) "slategrey", 9, LXB_CSS_VALUE_SLATEGREY},
-    {(lxb_char_t *) "snow", 4, LXB_CSS_VALUE_SNOW},
-    {(lxb_char_t *) "springgreen", 11, LXB_CSS_VALUE_SPRINGGREEN},
-    {(lxb_char_t *) "steelblue", 9, LXB_CSS_VALUE_STEELBLUE},
-    {(lxb_char_t *) "tan", 3, LXB_CSS_VALUE_TAN},
-    {(lxb_char_t *) "teal", 4, LXB_CSS_VALUE_TEAL},
-    {(lxb_char_t *) "thistle", 7, LXB_CSS_VALUE_THISTLE},
-    {(lxb_char_t *) "tomato", 6, LXB_CSS_VALUE_TOMATO},
-    {(lxb_char_t *) "turquoise", 9, LXB_CSS_VALUE_TURQUOISE},
-    {(lxb_char_t *) "violet", 6, LXB_CSS_VALUE_VIOLET},
-    {(lxb_char_t *) "wheat", 5, LXB_CSS_VALUE_WHEAT},
-    {(lxb_char_t *) "white", 5, LXB_CSS_VALUE_WHITE},
-    {(lxb_char_t *) "whitesmoke", 10, LXB_CSS_VALUE_WHITESMOKE},
-    {(lxb_char_t *) "yellow", 6, LXB_CSS_VALUE_YELLOW},
-    {(lxb_char_t *) "yellowgreen", 11, LXB_CSS_VALUE_YELLOWGREEN},
-    {(lxb_char_t *) "Canvas", 6, LXB_CSS_VALUE_CANVAS},
-    {(lxb_char_t *) "CanvasText", 10, LXB_CSS_VALUE_CANVASTEXT},
-    {(lxb_char_t *) "LinkText", 8, LXB_CSS_VALUE_LINKTEXT},
-    {(lxb_char_t *) "VisitedText", 11, LXB_CSS_VALUE_VISITEDTEXT},
-    {(lxb_char_t *) "ActiveText", 10, LXB_CSS_VALUE_ACTIVETEXT},
-    {(lxb_char_t *) "ButtonFace", 10, LXB_CSS_VALUE_BUTTONFACE},
-    {(lxb_char_t *) "ButtonText", 10, LXB_CSS_VALUE_BUTTONTEXT},
-    {(lxb_char_t *) "ButtonBorder", 12, LXB_CSS_VALUE_BUTTONBORDER},
-    {(lxb_char_t *) "Field", 5, LXB_CSS_VALUE_FIELD},
-    {(lxb_char_t *) "FieldText", 9, LXB_CSS_VALUE_FIELDTEXT},
-    {(lxb_char_t *) "Highlight", 9, LXB_CSS_VALUE_HIGHLIGHT},
-    {(lxb_char_t *) "HighlightText", 13, LXB_CSS_VALUE_HIGHLIGHTTEXT},
-    {(lxb_char_t *) "SelectedItem", 12, LXB_CSS_VALUE_SELECTEDITEM},
-    {(lxb_char_t *) "SelectedItemText", 16, LXB_CSS_VALUE_SELECTEDITEMTEXT},
-    {(lxb_char_t *) "Mark", 4, LXB_CSS_VALUE_MARK},
-    {(lxb_char_t *) "MarkText", 8, LXB_CSS_VALUE_MARKTEXT},
-    {(lxb_char_t *) "GrayText", 8, LXB_CSS_VALUE_GRAYTEXT},
-    {(lxb_char_t *) "AccentColor", 11, LXB_CSS_VALUE_ACCENTCOLOR},
-    {(lxb_char_t *) "AccentColorText", 15, LXB_CSS_VALUE_ACCENTCOLORTEXT},
-    {(lxb_char_t *) "rgb", 3, LXB_CSS_VALUE_RGB},
-    {(lxb_char_t *) "rgba", 4, LXB_CSS_VALUE_RGBA},
-    {(lxb_char_t *) "hsl", 3, LXB_CSS_VALUE_HSL},
-    {(lxb_char_t *) "hsla", 4, LXB_CSS_VALUE_HSLA},
-    {(lxb_char_t *) "hwb", 3, LXB_CSS_VALUE_HWB},
-    {(lxb_char_t *) "lab", 3, LXB_CSS_VALUE_LAB},
-    {(lxb_char_t *) "lch", 3, LXB_CSS_VALUE_LCH},
-    {(lxb_char_t *) "oklab", 5, LXB_CSS_VALUE_OKLAB},
-    {(lxb_char_t *) "oklch", 5, LXB_CSS_VALUE_OKLCH},
-    {(lxb_char_t *) "color", 5, LXB_CSS_VALUE_COLOR},
-    {(lxb_char_t *) "ltr", 3, LXB_CSS_VALUE_LTR},
-    {(lxb_char_t *) "rtl", 3, LXB_CSS_VALUE_RTL},
-    {(lxb_char_t *) "block", 5, LXB_CSS_VALUE_BLOCK},
-    {(lxb_char_t *) "inline", 6, LXB_CSS_VALUE_INLINE},
-    {(lxb_char_t *) "run-in", 6, LXB_CSS_VALUE_RUN_IN},
-    {(lxb_char_t *) "flow", 4, LXB_CSS_VALUE_FLOW},
-    {(lxb_char_t *) "flow-root", 9, LXB_CSS_VALUE_FLOW_ROOT},
-    {(lxb_char_t *) "table", 5, LXB_CSS_VALUE_TABLE},
-    {(lxb_char_t *) "flex", 4, LXB_CSS_VALUE_FLEX},
-    {(lxb_char_t *) "grid", 4, LXB_CSS_VALUE_GRID},
-    {(lxb_char_t *) "ruby", 4, LXB_CSS_VALUE_RUBY},
-    {(lxb_char_t *) "list-item", 9, LXB_CSS_VALUE_LIST_ITEM},
-    {(lxb_char_t *) "table-row-group", 15, LXB_CSS_VALUE_TABLE_ROW_GROUP},
-    {(lxb_char_t *) "table-header-group", 18, LXB_CSS_VALUE_TABLE_HEADER_GROUP},
-    {(lxb_char_t *) "table-footer-group", 18, LXB_CSS_VALUE_TABLE_FOOTER_GROUP},
-    {(lxb_char_t *) "table-row", 9, LXB_CSS_VALUE_TABLE_ROW},
-    {(lxb_char_t *) "table-cell", 10, LXB_CSS_VALUE_TABLE_CELL},
-    {(lxb_char_t *) "table-column-group", 18, LXB_CSS_VALUE_TABLE_COLUMN_GROUP},
-    {(lxb_char_t *) "table-column", 12, LXB_CSS_VALUE_TABLE_COLUMN},
-    {(lxb_char_t *) "table-caption", 13, LXB_CSS_VALUE_TABLE_CAPTION},
-    {(lxb_char_t *) "ruby-base", 9, LXB_CSS_VALUE_RUBY_BASE},
-    {(lxb_char_t *) "ruby-text", 9, LXB_CSS_VALUE_RUBY_TEXT},
-    {(lxb_char_t *) "ruby-base-container", 19, LXB_CSS_VALUE_RUBY_BASE_CONTAINER},
-    {(lxb_char_t *) "ruby-text-container", 19, LXB_CSS_VALUE_RUBY_TEXT_CONTAINER},
-    {(lxb_char_t *) "contents", 8, LXB_CSS_VALUE_CONTENTS},
-    {(lxb_char_t *) "inline-block", 12, LXB_CSS_VALUE_INLINE_BLOCK},
-    {(lxb_char_t *) "inline-table", 12, LXB_CSS_VALUE_INLINE_TABLE},
-    {(lxb_char_t *) "inline-flex", 11, LXB_CSS_VALUE_INLINE_FLEX},
-    {(lxb_char_t *) "inline-grid", 11, LXB_CSS_VALUE_INLINE_GRID},
-    {(lxb_char_t *) "hanging", 7, LXB_CSS_VALUE_HANGING},
-    {(lxb_char_t *) "content", 7, LXB_CSS_VALUE_CONTENT},
-    {(lxb_char_t *) "row", 3, LXB_CSS_VALUE_ROW},
-    {(lxb_char_t *) "row-reverse", 11, LXB_CSS_VALUE_ROW_REVERSE},
-    {(lxb_char_t *) "column", 6, LXB_CSS_VALUE_COLUMN},
-    {(lxb_char_t *) "column-reverse", 14, LXB_CSS_VALUE_COLUMN_REVERSE},
-    {(lxb_char_t *) "_number", 7, LXB_CSS_VALUE__NUMBER},
-    {(lxb_char_t *) "nowrap", 6, LXB_CSS_VALUE_NOWRAP},
-    {(lxb_char_t *) "wrap", 4, LXB_CSS_VALUE_WRAP},
-    {(lxb_char_t *) "wrap-reverse", 12, LXB_CSS_VALUE_WRAP_REVERSE},
-    {(lxb_char_t *) "snap-block", 10, LXB_CSS_VALUE_SNAP_BLOCK},
-    {(lxb_char_t *) "start", 5, LXB_CSS_VALUE_START},
-    {(lxb_char_t *) "end", 3, LXB_CSS_VALUE_END},
-    {(lxb_char_t *) "near", 4, LXB_CSS_VALUE_NEAR},
-    {(lxb_char_t *) "snap-inline", 11, LXB_CSS_VALUE_SNAP_INLINE},
-    {(lxb_char_t *) "_integer", 8, LXB_CSS_VALUE__INTEGER},
-    {(lxb_char_t *) "region", 6, LXB_CSS_VALUE_REGION},
-    {(lxb_char_t *) "page", 4, LXB_CSS_VALUE_PAGE},
-    {(lxb_char_t *) "serif", 5, LXB_CSS_VALUE_SERIF},
-    {(lxb_char_t *) "sans-serif", 10, LXB_CSS_VALUE_SANS_SERIF},
-    {(lxb_char_t *) "cursive", 7, LXB_CSS_VALUE_CURSIVE},
-    {(lxb_char_t *) "fantasy", 7, LXB_CSS_VALUE_FANTASY},
-    {(lxb_char_t *) "monospace", 9, LXB_CSS_VALUE_MONOSPACE},
-    {(lxb_char_t *) "system-ui", 9, LXB_CSS_VALUE_SYSTEM_UI},
-    {(lxb_char_t *) "emoji", 5, LXB_CSS_VALUE_EMOJI},
-    {(lxb_char_t *) "math", 4, LXB_CSS_VALUE_MATH},
-    {(lxb_char_t *) "fangsong", 8, LXB_CSS_VALUE_FANGSONG},
-    {(lxb_char_t *) "ui-serif", 8, LXB_CSS_VALUE_UI_SERIF},
-    {(lxb_char_t *) "ui-sans-serif", 13, LXB_CSS_VALUE_UI_SANS_SERIF},
-    {(lxb_char_t *) "ui-monospace", 12, LXB_CSS_VALUE_UI_MONOSPACE},
-    {(lxb_char_t *) "ui-rounded", 10, LXB_CSS_VALUE_UI_ROUNDED},
-    {(lxb_char_t *) "xx-small", 8, LXB_CSS_VALUE_XX_SMALL},
-    {(lxb_char_t *) "x-small", 7, LXB_CSS_VALUE_X_SMALL},
-    {(lxb_char_t *) "small", 5, LXB_CSS_VALUE_SMALL},
-    {(lxb_char_t *) "large", 5, LXB_CSS_VALUE_LARGE},
-    {(lxb_char_t *) "x-large", 7, LXB_CSS_VALUE_X_LARGE},
-    {(lxb_char_t *) "xx-large", 8, LXB_CSS_VALUE_XX_LARGE},
-    {(lxb_char_t *) "xxx-large", 9, LXB_CSS_VALUE_XXX_LARGE},
-    {(lxb_char_t *) "larger", 6, LXB_CSS_VALUE_LARGER},
-    {(lxb_char_t *) "smaller", 7, LXB_CSS_VALUE_SMALLER},
-    {(lxb_char_t *) "normal", 6, LXB_CSS_VALUE_NORMAL},
-    {(lxb_char_t *) "ultra-condensed", 15, LXB_CSS_VALUE_ULTRA_CONDENSED},
-    {(lxb_char_t *) "extra-condensed", 15, LXB_CSS_VALUE_EXTRA_CONDENSED},
-    {(lxb_char_t *) "condensed", 9, LXB_CSS_VALUE_CONDENSED},
-    {(lxb_char_t *) "semi-condensed", 14, LXB_CSS_VALUE_SEMI_CONDENSED},
-    {(lxb_char_t *) "semi-expanded", 13, LXB_CSS_VALUE_SEMI_EXPANDED},
-    {(lxb_char_t *) "expanded", 8, LXB_CSS_VALUE_EXPANDED},
-    {(lxb_char_t *) "extra-expanded", 14, LXB_CSS_VALUE_EXTRA_EXPANDED},
-    {(lxb_char_t *) "ultra-expanded", 14, LXB_CSS_VALUE_ULTRA_EXPANDED},
-    {(lxb_char_t *) "italic", 6, LXB_CSS_VALUE_ITALIC},
-    {(lxb_char_t *) "oblique", 7, LXB_CSS_VALUE_OBLIQUE},
-    {(lxb_char_t *) "bold", 4, LXB_CSS_VALUE_BOLD},
-    {(lxb_char_t *) "bolder", 6, LXB_CSS_VALUE_BOLDER},
-    {(lxb_char_t *) "lighter", 7, LXB_CSS_VALUE_LIGHTER},
-    {(lxb_char_t *) "force-end", 9, LXB_CSS_VALUE_FORCE_END},
-    {(lxb_char_t *) "allow-end", 9, LXB_CSS_VALUE_ALLOW_END},
-    {(lxb_char_t *) "min-content", 11, LXB_CSS_VALUE_MIN_CONTENT},
-    {(lxb_char_t *) "max-content", 11, LXB_CSS_VALUE_MAX_CONTENT},
-    {(lxb_char_t *) "_angle", 6, LXB_CSS_VALUE__ANGLE},
-    {(lxb_char_t *) "manual", 6, LXB_CSS_VALUE_MANUAL},
-    {(lxb_char_t *) "loose", 5, LXB_CSS_VALUE_LOOSE},
-    {(lxb_char_t *) "strict", 6, LXB_CSS_VALUE_STRICT},
-    {(lxb_char_t *) "anywhere", 8, LXB_CSS_VALUE_ANYWHERE},
-    {(lxb_char_t *) "visible", 7, LXB_CSS_VALUE_VISIBLE},
-    {(lxb_char_t *) "clip", 4, LXB_CSS_VALUE_CLIP},
-    {(lxb_char_t *) "scroll", 6, LXB_CSS_VALUE_SCROLL},
-    {(lxb_char_t *) "break-word", 10, LXB_CSS_VALUE_BREAK_WORD},
-    {(lxb_char_t *) "static", 6, LXB_CSS_VALUE_STATIC},
-    {(lxb_char_t *) "relative", 8, LXB_CSS_VALUE_RELATIVE},
-    {(lxb_char_t *) "absolute", 8, LXB_CSS_VALUE_ABSOLUTE},
-    {(lxb_char_t *) "sticky", 6, LXB_CSS_VALUE_STICKY},
-    {(lxb_char_t *) "fixed", 5, LXB_CSS_VALUE_FIXED},
-    {(lxb_char_t *) "justify", 7, LXB_CSS_VALUE_JUSTIFY},
-    {(lxb_char_t *) "match-parent", 12, LXB_CSS_VALUE_MATCH_PARENT},
-    {(lxb_char_t *) "justify-all", 11, LXB_CSS_VALUE_JUSTIFY_ALL},
-    {(lxb_char_t *) "all", 3, LXB_CSS_VALUE_ALL},
-    {(lxb_char_t *) "digits", 6, LXB_CSS_VALUE_DIGITS},
-    {(lxb_char_t *) "underline", 9, LXB_CSS_VALUE_UNDERLINE},
-    {(lxb_char_t *) "overline", 8, LXB_CSS_VALUE_OVERLINE},
-    {(lxb_char_t *) "line-through", 12, LXB_CSS_VALUE_LINE_THROUGH},
-    {(lxb_char_t *) "blink", 5, LXB_CSS_VALUE_BLINK},
-    {(lxb_char_t *) "wavy", 4, LXB_CSS_VALUE_WAVY},
-    {(lxb_char_t *) "each-line", 9, LXB_CSS_VALUE_EACH_LINE},
-    {(lxb_char_t *) "inter-word", 10, LXB_CSS_VALUE_INTER_WORD},
-    {(lxb_char_t *) "inter-character", 15, LXB_CSS_VALUE_INTER_CHARACTER},
-    {(lxb_char_t *) "mixed", 5, LXB_CSS_VALUE_MIXED},
-    {(lxb_char_t *) "upright", 7, LXB_CSS_VALUE_UPRIGHT},
-    {(lxb_char_t *) "sideways", 8, LXB_CSS_VALUE_SIDEWAYS},
-    {(lxb_char_t *) "ellipsis", 8, LXB_CSS_VALUE_ELLIPSIS},
-    {(lxb_char_t *) "capitalize", 10, LXB_CSS_VALUE_CAPITALIZE},
-    {(lxb_char_t *) "uppercase", 9, LXB_CSS_VALUE_UPPERCASE},
-    {(lxb_char_t *) "lowercase", 9, LXB_CSS_VALUE_LOWERCASE},
-    {(lxb_char_t *) "full-width", 10, LXB_CSS_VALUE_FULL_WIDTH},
-    {(lxb_char_t *) "full-size-kana", 14, LXB_CSS_VALUE_FULL_SIZE_KANA},
-    {(lxb_char_t *) "embed", 5, LXB_CSS_VALUE_EMBED},
-    {(lxb_char_t *) "isolate", 7, LXB_CSS_VALUE_ISOLATE},
-    {(lxb_char_t *) "bidi-override", 13, LXB_CSS_VALUE_BIDI_OVERRIDE},
-    {(lxb_char_t *) "isolate-override", 16, LXB_CSS_VALUE_ISOLATE_OVERRIDE},
-    {(lxb_char_t *) "plaintext", 9, LXB_CSS_VALUE_PLAINTEXT},
-    {(lxb_char_t *) "collapse", 8, LXB_CSS_VALUE_COLLAPSE},
-    {(lxb_char_t *) "pre", 3, LXB_CSS_VALUE_PRE},
-    {(lxb_char_t *) "pre-wrap", 8, LXB_CSS_VALUE_PRE_WRAP},
-    {(lxb_char_t *) "break-spaces", 12, LXB_CSS_VALUE_BREAK_SPACES},
-    {(lxb_char_t *) "pre-line", 8, LXB_CSS_VALUE_PRE_LINE},
-    {(lxb_char_t *) "keep-all", 8, LXB_CSS_VALUE_KEEP_ALL},
-    {(lxb_char_t *) "break-all", 9, LXB_CSS_VALUE_BREAK_ALL},
-    {(lxb_char_t *) "both", 4, LXB_CSS_VALUE_BOTH},
-    {(lxb_char_t *) "minimum", 7, LXB_CSS_VALUE_MINIMUM},
-    {(lxb_char_t *) "maximum", 7, LXB_CSS_VALUE_MAXIMUM},
-    {(lxb_char_t *) "clear", 5, LXB_CSS_VALUE_CLEAR},
-    {(lxb_char_t *) "horizontal-tb", 13, LXB_CSS_VALUE_HORIZONTAL_TB},
-    {(lxb_char_t *) "vertical-rl", 11, LXB_CSS_VALUE_VERTICAL_RL},
-    {(lxb_char_t *) "vertical-lr", 11, LXB_CSS_VALUE_VERTICAL_LR},
-    {(lxb_char_t *) "sideways-rl", 11, LXB_CSS_VALUE_SIDEWAYS_RL},
-    {(lxb_char_t *) "sideways-lr", 11, LXB_CSS_VALUE_SIDEWAYS_LR}
+    {
+        .name = (lxb_char_t *) "_undef",
+        .length = 6,
+        .unique = LXB_CSS_VALUE__UNDEF
+    },
+    {
+        .name = (lxb_char_t *) "initial",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_INITIAL
+    },
+    {
+        .name = (lxb_char_t *) "inherit",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_INHERIT
+    },
+    {
+        .name = (lxb_char_t *) "unset",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_UNSET
+    },
+    {
+        .name = (lxb_char_t *) "revert",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_REVERT
+    },
+    {
+        .name = (lxb_char_t *) "flex-start",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_FLEX_START
+    },
+    {
+        .name = (lxb_char_t *) "flex-end",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_FLEX_END
+    },
+    {
+        .name = (lxb_char_t *) "center",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_CENTER
+    },
+    {
+        .name = (lxb_char_t *) "space-between",
+        .length = 13,
+        .unique = LXB_CSS_VALUE_SPACE_BETWEEN
+    },
+    {
+        .name = (lxb_char_t *) "space-around",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_SPACE_AROUND
+    },
+    {
+        .name = (lxb_char_t *) "stretch",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_STRETCH
+    },
+    {
+        .name = (lxb_char_t *) "baseline",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_BASELINE
+    },
+    {
+        .name = (lxb_char_t *) "auto",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_AUTO
+    },
+    {
+        .name = (lxb_char_t *) "text-bottom",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_TEXT_BOTTOM
+    },
+    {
+        .name = (lxb_char_t *) "alphabetic",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_ALPHABETIC
+    },
+    {
+        .name = (lxb_char_t *) "ideographic",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_IDEOGRAPHIC
+    },
+    {
+        .name = (lxb_char_t *) "middle",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_MIDDLE
+    },
+    {
+        .name = (lxb_char_t *) "central",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_CENTRAL
+    },
+    {
+        .name = (lxb_char_t *) "mathematical",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_MATHEMATICAL
+    },
+    {
+        .name = (lxb_char_t *) "text-top",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_TEXT_TOP
+    },
+    {
+        .name = (lxb_char_t *) "_length",
+        .length = 7,
+        .unique = LXB_CSS_VALUE__LENGTH
+    },
+    {
+        .name = (lxb_char_t *) "_percentage",
+        .length = 11,
+        .unique = LXB_CSS_VALUE__PERCENTAGE
+    },
+    {
+        .name = (lxb_char_t *) "sub",
+        .length = 3,
+        .unique = LXB_CSS_VALUE_SUB
+    },
+    {
+        .name = (lxb_char_t *) "super",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_SUPER
+    },
+    {
+        .name = (lxb_char_t *) "top",
+        .length = 3,
+        .unique = LXB_CSS_VALUE_TOP
+    },
+    {
+        .name = (lxb_char_t *) "bottom",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_BOTTOM
+    },
+    {
+        .name = (lxb_char_t *) "first",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_FIRST
+    },
+    {
+        .name = (lxb_char_t *) "last",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_LAST
+    },
+    {
+        .name = (lxb_char_t *) "thin",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_THIN
+    },
+    {
+        .name = (lxb_char_t *) "medium",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_MEDIUM
+    },
+    {
+        .name = (lxb_char_t *) "thick",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_THICK
+    },
+    {
+        .name = (lxb_char_t *) "none",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_NONE
+    },
+    {
+        .name = (lxb_char_t *) "hidden",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_HIDDEN
+    },
+    {
+        .name = (lxb_char_t *) "dotted",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_DOTTED
+    },
+    {
+        .name = (lxb_char_t *) "dashed",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_DASHED
+    },
+    {
+        .name = (lxb_char_t *) "solid",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_SOLID
+    },
+    {
+        .name = (lxb_char_t *) "double",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_DOUBLE
+    },
+    {
+        .name = (lxb_char_t *) "groove",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_GROOVE
+    },
+    {
+        .name = (lxb_char_t *) "ridge",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_RIDGE
+    },
+    {
+        .name = (lxb_char_t *) "inset",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_INSET
+    },
+    {
+        .name = (lxb_char_t *) "outset",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_OUTSET
+    },
+    {
+        .name = (lxb_char_t *) "content-box",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_CONTENT_BOX
+    },
+    {
+        .name = (lxb_char_t *) "border-box",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_BORDER_BOX
+    },
+    {
+        .name = (lxb_char_t *) "inline-start",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_INLINE_START
+    },
+    {
+        .name = (lxb_char_t *) "inline-end",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_INLINE_END
+    },
+    {
+        .name = (lxb_char_t *) "block-start",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_BLOCK_START
+    },
+    {
+        .name = (lxb_char_t *) "block-end",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_BLOCK_END
+    },
+    {
+        .name = (lxb_char_t *) "left",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_LEFT
+    },
+    {
+        .name = (lxb_char_t *) "right",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_RIGHT
+    },
+    {
+        .name = (lxb_char_t *) "currentcolor",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_CURRENTCOLOR
+    },
+    {
+        .name = (lxb_char_t *) "transparent",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_TRANSPARENT
+    },
+    {
+        .name = (lxb_char_t *) "hex",
+        .length = 3,
+        .unique = LXB_CSS_VALUE_HEX
+    },
+    {
+        .name = (lxb_char_t *) "aliceblue",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_ALICEBLUE
+    },
+    {
+        .name = (lxb_char_t *) "antiquewhite",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_ANTIQUEWHITE
+    },
+    {
+        .name = (lxb_char_t *) "aqua",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_AQUA
+    },
+    {
+        .name = (lxb_char_t *) "aquamarine",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_AQUAMARINE
+    },
+    {
+        .name = (lxb_char_t *) "azure",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_AZURE
+    },
+    {
+        .name = (lxb_char_t *) "beige",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_BEIGE
+    },
+    {
+        .name = (lxb_char_t *) "bisque",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_BISQUE
+    },
+    {
+        .name = (lxb_char_t *) "black",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_BLACK
+    },
+    {
+        .name = (lxb_char_t *) "blanchedalmond",
+        .length = 14,
+        .unique = LXB_CSS_VALUE_BLANCHEDALMOND
+    },
+    {
+        .name = (lxb_char_t *) "blue",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_BLUE
+    },
+    {
+        .name = (lxb_char_t *) "blueviolet",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_BLUEVIOLET
+    },
+    {
+        .name = (lxb_char_t *) "brown",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_BROWN
+    },
+    {
+        .name = (lxb_char_t *) "burlywood",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_BURLYWOOD
+    },
+    {
+        .name = (lxb_char_t *) "cadetblue",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_CADETBLUE
+    },
+    {
+        .name = (lxb_char_t *) "chartreuse",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_CHARTREUSE
+    },
+    {
+        .name = (lxb_char_t *) "chocolate",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_CHOCOLATE
+    },
+    {
+        .name = (lxb_char_t *) "coral",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_CORAL
+    },
+    {
+        .name = (lxb_char_t *) "cornflowerblue",
+        .length = 14,
+        .unique = LXB_CSS_VALUE_CORNFLOWERBLUE
+    },
+    {
+        .name = (lxb_char_t *) "cornsilk",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_CORNSILK
+    },
+    {
+        .name = (lxb_char_t *) "crimson",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_CRIMSON
+    },
+    {
+        .name = (lxb_char_t *) "cyan",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_CYAN
+    },
+    {
+        .name = (lxb_char_t *) "darkblue",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_DARKBLUE
+    },
+    {
+        .name = (lxb_char_t *) "darkcyan",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_DARKCYAN
+    },
+    {
+        .name = (lxb_char_t *) "darkgoldenrod",
+        .length = 13,
+        .unique = LXB_CSS_VALUE_DARKGOLDENROD
+    },
+    {
+        .name = (lxb_char_t *) "darkgray",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_DARKGRAY
+    },
+    {
+        .name = (lxb_char_t *) "darkgreen",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_DARKGREEN
+    },
+    {
+        .name = (lxb_char_t *) "darkgrey",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_DARKGREY
+    },
+    {
+        .name = (lxb_char_t *) "darkkhaki",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_DARKKHAKI
+    },
+    {
+        .name = (lxb_char_t *) "darkmagenta",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_DARKMAGENTA
+    },
+    {
+        .name = (lxb_char_t *) "darkolivegreen",
+        .length = 14,
+        .unique = LXB_CSS_VALUE_DARKOLIVEGREEN
+    },
+    {
+        .name = (lxb_char_t *) "darkorange",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_DARKORANGE
+    },
+    {
+        .name = (lxb_char_t *) "darkorchid",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_DARKORCHID
+    },
+    {
+        .name = (lxb_char_t *) "darkred",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_DARKRED
+    },
+    {
+        .name = (lxb_char_t *) "darksalmon",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_DARKSALMON
+    },
+    {
+        .name = (lxb_char_t *) "darkseagreen",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_DARKSEAGREEN
+    },
+    {
+        .name = (lxb_char_t *) "darkslateblue",
+        .length = 13,
+        .unique = LXB_CSS_VALUE_DARKSLATEBLUE
+    },
+    {
+        .name = (lxb_char_t *) "darkslategray",
+        .length = 13,
+        .unique = LXB_CSS_VALUE_DARKSLATEGRAY
+    },
+    {
+        .name = (lxb_char_t *) "darkslategrey",
+        .length = 13,
+        .unique = LXB_CSS_VALUE_DARKSLATEGREY
+    },
+    {
+        .name = (lxb_char_t *) "darkturquoise",
+        .length = 13,
+        .unique = LXB_CSS_VALUE_DARKTURQUOISE
+    },
+    {
+        .name = (lxb_char_t *) "darkviolet",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_DARKVIOLET
+    },
+    {
+        .name = (lxb_char_t *) "deeppink",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_DEEPPINK
+    },
+    {
+        .name = (lxb_char_t *) "deepskyblue",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_DEEPSKYBLUE
+    },
+    {
+        .name = (lxb_char_t *) "dimgray",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_DIMGRAY
+    },
+    {
+        .name = (lxb_char_t *) "dimgrey",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_DIMGREY
+    },
+    {
+        .name = (lxb_char_t *) "dodgerblue",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_DODGERBLUE
+    },
+    {
+        .name = (lxb_char_t *) "firebrick",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_FIREBRICK
+    },
+    {
+        .name = (lxb_char_t *) "floralwhite",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_FLORALWHITE
+    },
+    {
+        .name = (lxb_char_t *) "forestgreen",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_FORESTGREEN
+    },
+    {
+        .name = (lxb_char_t *) "fuchsia",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_FUCHSIA
+    },
+    {
+        .name = (lxb_char_t *) "gainsboro",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_GAINSBORO
+    },
+    {
+        .name = (lxb_char_t *) "ghostwhite",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_GHOSTWHITE
+    },
+    {
+        .name = (lxb_char_t *) "gold",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_GOLD
+    },
+    {
+        .name = (lxb_char_t *) "goldenrod",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_GOLDENROD
+    },
+    {
+        .name = (lxb_char_t *) "gray",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_GRAY
+    },
+    {
+        .name = (lxb_char_t *) "green",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_GREEN
+    },
+    {
+        .name = (lxb_char_t *) "greenyellow",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_GREENYELLOW
+    },
+    {
+        .name = (lxb_char_t *) "grey",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_GREY
+    },
+    {
+        .name = (lxb_char_t *) "honeydew",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_HONEYDEW
+    },
+    {
+        .name = (lxb_char_t *) "hotpink",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_HOTPINK
+    },
+    {
+        .name = (lxb_char_t *) "indianred",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_INDIANRED
+    },
+    {
+        .name = (lxb_char_t *) "indigo",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_INDIGO
+    },
+    {
+        .name = (lxb_char_t *) "ivory",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_IVORY
+    },
+    {
+        .name = (lxb_char_t *) "khaki",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_KHAKI
+    },
+    {
+        .name = (lxb_char_t *) "lavender",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_LAVENDER
+    },
+    {
+        .name = (lxb_char_t *) "lavenderblush",
+        .length = 13,
+        .unique = LXB_CSS_VALUE_LAVENDERBLUSH
+    },
+    {
+        .name = (lxb_char_t *) "lawngreen",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_LAWNGREEN
+    },
+    {
+        .name = (lxb_char_t *) "lemonchiffon",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_LEMONCHIFFON
+    },
+    {
+        .name = (lxb_char_t *) "lightblue",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_LIGHTBLUE
+    },
+    {
+        .name = (lxb_char_t *) "lightcoral",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_LIGHTCORAL
+    },
+    {
+        .name = (lxb_char_t *) "lightcyan",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_LIGHTCYAN
+    },
+    {
+        .name = (lxb_char_t *) "lightgoldenrodyellow",
+        .length = 20,
+        .unique = LXB_CSS_VALUE_LIGHTGOLDENRODYELLOW
+    },
+    {
+        .name = (lxb_char_t *) "lightgray",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_LIGHTGRAY
+    },
+    {
+        .name = (lxb_char_t *) "lightgreen",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_LIGHTGREEN
+    },
+    {
+        .name = (lxb_char_t *) "lightgrey",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_LIGHTGREY
+    },
+    {
+        .name = (lxb_char_t *) "lightpink",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_LIGHTPINK
+    },
+    {
+        .name = (lxb_char_t *) "lightsalmon",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_LIGHTSALMON
+    },
+    {
+        .name = (lxb_char_t *) "lightseagreen",
+        .length = 13,
+        .unique = LXB_CSS_VALUE_LIGHTSEAGREEN
+    },
+    {
+        .name = (lxb_char_t *) "lightskyblue",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_LIGHTSKYBLUE
+    },
+    {
+        .name = (lxb_char_t *) "lightslategray",
+        .length = 14,
+        .unique = LXB_CSS_VALUE_LIGHTSLATEGRAY
+    },
+    {
+        .name = (lxb_char_t *) "lightslategrey",
+        .length = 14,
+        .unique = LXB_CSS_VALUE_LIGHTSLATEGREY
+    },
+    {
+        .name = (lxb_char_t *) "lightsteelblue",
+        .length = 14,
+        .unique = LXB_CSS_VALUE_LIGHTSTEELBLUE
+    },
+    {
+        .name = (lxb_char_t *) "lightyellow",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_LIGHTYELLOW
+    },
+    {
+        .name = (lxb_char_t *) "lime",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_LIME
+    },
+    {
+        .name = (lxb_char_t *) "limegreen",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_LIMEGREEN
+    },
+    {
+        .name = (lxb_char_t *) "linen",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_LINEN
+    },
+    {
+        .name = (lxb_char_t *) "magenta",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_MAGENTA
+    },
+    {
+        .name = (lxb_char_t *) "maroon",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_MAROON
+    },
+    {
+        .name = (lxb_char_t *) "mediumaquamarine",
+        .length = 16,
+        .unique = LXB_CSS_VALUE_MEDIUMAQUAMARINE
+    },
+    {
+        .name = (lxb_char_t *) "mediumblue",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_MEDIUMBLUE
+    },
+    {
+        .name = (lxb_char_t *) "mediumorchid",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_MEDIUMORCHID
+    },
+    {
+        .name = (lxb_char_t *) "mediumpurple",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_MEDIUMPURPLE
+    },
+    {
+        .name = (lxb_char_t *) "mediumseagreen",
+        .length = 14,
+        .unique = LXB_CSS_VALUE_MEDIUMSEAGREEN
+    },
+    {
+        .name = (lxb_char_t *) "mediumslateblue",
+        .length = 15,
+        .unique = LXB_CSS_VALUE_MEDIUMSLATEBLUE
+    },
+    {
+        .name = (lxb_char_t *) "mediumspringgreen",
+        .length = 17,
+        .unique = LXB_CSS_VALUE_MEDIUMSPRINGGREEN
+    },
+    {
+        .name = (lxb_char_t *) "mediumturquoise",
+        .length = 15,
+        .unique = LXB_CSS_VALUE_MEDIUMTURQUOISE
+    },
+    {
+        .name = (lxb_char_t *) "mediumvioletred",
+        .length = 15,
+        .unique = LXB_CSS_VALUE_MEDIUMVIOLETRED
+    },
+    {
+        .name = (lxb_char_t *) "midnightblue",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_MIDNIGHTBLUE
+    },
+    {
+        .name = (lxb_char_t *) "mintcream",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_MINTCREAM
+    },
+    {
+        .name = (lxb_char_t *) "mistyrose",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_MISTYROSE
+    },
+    {
+        .name = (lxb_char_t *) "moccasin",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_MOCCASIN
+    },
+    {
+        .name = (lxb_char_t *) "navajowhite",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_NAVAJOWHITE
+    },
+    {
+        .name = (lxb_char_t *) "navy",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_NAVY
+    },
+    {
+        .name = (lxb_char_t *) "oldlace",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_OLDLACE
+    },
+    {
+        .name = (lxb_char_t *) "olive",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_OLIVE
+    },
+    {
+        .name = (lxb_char_t *) "olivedrab",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_OLIVEDRAB
+    },
+    {
+        .name = (lxb_char_t *) "orange",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_ORANGE
+    },
+    {
+        .name = (lxb_char_t *) "orangered",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_ORANGERED
+    },
+    {
+        .name = (lxb_char_t *) "orchid",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_ORCHID
+    },
+    {
+        .name = (lxb_char_t *) "palegoldenrod",
+        .length = 13,
+        .unique = LXB_CSS_VALUE_PALEGOLDENROD
+    },
+    {
+        .name = (lxb_char_t *) "palegreen",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_PALEGREEN
+    },
+    {
+        .name = (lxb_char_t *) "paleturquoise",
+        .length = 13,
+        .unique = LXB_CSS_VALUE_PALETURQUOISE
+    },
+    {
+        .name = (lxb_char_t *) "palevioletred",
+        .length = 13,
+        .unique = LXB_CSS_VALUE_PALEVIOLETRED
+    },
+    {
+        .name = (lxb_char_t *) "papayawhip",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_PAPAYAWHIP
+    },
+    {
+        .name = (lxb_char_t *) "peachpuff",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_PEACHPUFF
+    },
+    {
+        .name = (lxb_char_t *) "peru",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_PERU
+    },
+    {
+        .name = (lxb_char_t *) "pink",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_PINK
+    },
+    {
+        .name = (lxb_char_t *) "plum",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_PLUM
+    },
+    {
+        .name = (lxb_char_t *) "powderblue",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_POWDERBLUE
+    },
+    {
+        .name = (lxb_char_t *) "purple",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_PURPLE
+    },
+    {
+        .name = (lxb_char_t *) "rebeccapurple",
+        .length = 13,
+        .unique = LXB_CSS_VALUE_REBECCAPURPLE
+    },
+    {
+        .name = (lxb_char_t *) "red",
+        .length = 3,
+        .unique = LXB_CSS_VALUE_RED
+    },
+    {
+        .name = (lxb_char_t *) "rosybrown",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_ROSYBROWN
+    },
+    {
+        .name = (lxb_char_t *) "royalblue",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_ROYALBLUE
+    },
+    {
+        .name = (lxb_char_t *) "saddlebrown",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_SADDLEBROWN
+    },
+    {
+        .name = (lxb_char_t *) "salmon",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_SALMON
+    },
+    {
+        .name = (lxb_char_t *) "sandybrown",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_SANDYBROWN
+    },
+    {
+        .name = (lxb_char_t *) "seagreen",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_SEAGREEN
+    },
+    {
+        .name = (lxb_char_t *) "seashell",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_SEASHELL
+    },
+    {
+        .name = (lxb_char_t *) "sienna",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_SIENNA
+    },
+    {
+        .name = (lxb_char_t *) "silver",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_SILVER
+    },
+    {
+        .name = (lxb_char_t *) "skyblue",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_SKYBLUE
+    },
+    {
+        .name = (lxb_char_t *) "slateblue",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_SLATEBLUE
+    },
+    {
+        .name = (lxb_char_t *) "slategray",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_SLATEGRAY
+    },
+    {
+        .name = (lxb_char_t *) "slategrey",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_SLATEGREY
+    },
+    {
+        .name = (lxb_char_t *) "snow",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_SNOW
+    },
+    {
+        .name = (lxb_char_t *) "springgreen",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_SPRINGGREEN
+    },
+    {
+        .name = (lxb_char_t *) "steelblue",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_STEELBLUE
+    },
+    {
+        .name = (lxb_char_t *) "tan",
+        .length = 3,
+        .unique = LXB_CSS_VALUE_TAN
+    },
+    {
+        .name = (lxb_char_t *) "teal",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_TEAL
+    },
+    {
+        .name = (lxb_char_t *) "thistle",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_THISTLE
+    },
+    {
+        .name = (lxb_char_t *) "tomato",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_TOMATO
+    },
+    {
+        .name = (lxb_char_t *) "turquoise",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_TURQUOISE
+    },
+    {
+        .name = (lxb_char_t *) "violet",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_VIOLET
+    },
+    {
+        .name = (lxb_char_t *) "wheat",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_WHEAT
+    },
+    {
+        .name = (lxb_char_t *) "white",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_WHITE
+    },
+    {
+        .name = (lxb_char_t *) "whitesmoke",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_WHITESMOKE
+    },
+    {
+        .name = (lxb_char_t *) "yellow",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_YELLOW
+    },
+    {
+        .name = (lxb_char_t *) "yellowgreen",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_YELLOWGREEN
+    },
+    {
+        .name = (lxb_char_t *) "Canvas",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_CANVAS
+    },
+    {
+        .name = (lxb_char_t *) "CanvasText",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_CANVASTEXT
+    },
+    {
+        .name = (lxb_char_t *) "LinkText",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_LINKTEXT
+    },
+    {
+        .name = (lxb_char_t *) "VisitedText",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_VISITEDTEXT
+    },
+    {
+        .name = (lxb_char_t *) "ActiveText",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_ACTIVETEXT
+    },
+    {
+        .name = (lxb_char_t *) "ButtonFace",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_BUTTONFACE
+    },
+    {
+        .name = (lxb_char_t *) "ButtonText",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_BUTTONTEXT
+    },
+    {
+        .name = (lxb_char_t *) "ButtonBorder",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_BUTTONBORDER
+    },
+    {
+        .name = (lxb_char_t *) "Field",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_FIELD
+    },
+    {
+        .name = (lxb_char_t *) "FieldText",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_FIELDTEXT
+    },
+    {
+        .name = (lxb_char_t *) "Highlight",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_HIGHLIGHT
+    },
+    {
+        .name = (lxb_char_t *) "HighlightText",
+        .length = 13,
+        .unique = LXB_CSS_VALUE_HIGHLIGHTTEXT
+    },
+    {
+        .name = (lxb_char_t *) "SelectedItem",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_SELECTEDITEM
+    },
+    {
+        .name = (lxb_char_t *) "SelectedItemText",
+        .length = 16,
+        .unique = LXB_CSS_VALUE_SELECTEDITEMTEXT
+    },
+    {
+        .name = (lxb_char_t *) "Mark",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_MARK
+    },
+    {
+        .name = (lxb_char_t *) "MarkText",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_MARKTEXT
+    },
+    {
+        .name = (lxb_char_t *) "GrayText",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_GRAYTEXT
+    },
+    {
+        .name = (lxb_char_t *) "AccentColor",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_ACCENTCOLOR
+    },
+    {
+        .name = (lxb_char_t *) "AccentColorText",
+        .length = 15,
+        .unique = LXB_CSS_VALUE_ACCENTCOLORTEXT
+    },
+    {
+        .name = (lxb_char_t *) "rgb",
+        .length = 3,
+        .unique = LXB_CSS_VALUE_RGB
+    },
+    {
+        .name = (lxb_char_t *) "rgba",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_RGBA
+    },
+    {
+        .name = (lxb_char_t *) "hsl",
+        .length = 3,
+        .unique = LXB_CSS_VALUE_HSL
+    },
+    {
+        .name = (lxb_char_t *) "hsla",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_HSLA
+    },
+    {
+        .name = (lxb_char_t *) "hwb",
+        .length = 3,
+        .unique = LXB_CSS_VALUE_HWB
+    },
+    {
+        .name = (lxb_char_t *) "lab",
+        .length = 3,
+        .unique = LXB_CSS_VALUE_LAB
+    },
+    {
+        .name = (lxb_char_t *) "lch",
+        .length = 3,
+        .unique = LXB_CSS_VALUE_LCH
+    },
+    {
+        .name = (lxb_char_t *) "oklab",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_OKLAB
+    },
+    {
+        .name = (lxb_char_t *) "oklch",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_OKLCH
+    },
+    {
+        .name = (lxb_char_t *) "color",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_COLOR
+    },
+    {
+        .name = (lxb_char_t *) "ltr",
+        .length = 3,
+        .unique = LXB_CSS_VALUE_LTR
+    },
+    {
+        .name = (lxb_char_t *) "rtl",
+        .length = 3,
+        .unique = LXB_CSS_VALUE_RTL
+    },
+    {
+        .name = (lxb_char_t *) "block",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_BLOCK
+    },
+    {
+        .name = (lxb_char_t *) "inline",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_INLINE
+    },
+    {
+        .name = (lxb_char_t *) "run-in",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_RUN_IN
+    },
+    {
+        .name = (lxb_char_t *) "flow",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_FLOW
+    },
+    {
+        .name = (lxb_char_t *) "flow-root",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_FLOW_ROOT
+    },
+    {
+        .name = (lxb_char_t *) "table",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_TABLE
+    },
+    {
+        .name = (lxb_char_t *) "flex",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_FLEX
+    },
+    {
+        .name = (lxb_char_t *) "grid",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_GRID
+    },
+    {
+        .name = (lxb_char_t *) "ruby",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_RUBY
+    },
+    {
+        .name = (lxb_char_t *) "list-item",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_LIST_ITEM
+    },
+    {
+        .name = (lxb_char_t *) "table-row-group",
+        .length = 15,
+        .unique = LXB_CSS_VALUE_TABLE_ROW_GROUP
+    },
+    {
+        .name = (lxb_char_t *) "table-header-group",
+        .length = 18,
+        .unique = LXB_CSS_VALUE_TABLE_HEADER_GROUP
+    },
+    {
+        .name = (lxb_char_t *) "table-footer-group",
+        .length = 18,
+        .unique = LXB_CSS_VALUE_TABLE_FOOTER_GROUP
+    },
+    {
+        .name = (lxb_char_t *) "table-row",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_TABLE_ROW
+    },
+    {
+        .name = (lxb_char_t *) "table-cell",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_TABLE_CELL
+    },
+    {
+        .name = (lxb_char_t *) "table-column-group",
+        .length = 18,
+        .unique = LXB_CSS_VALUE_TABLE_COLUMN_GROUP
+    },
+    {
+        .name = (lxb_char_t *) "table-column",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_TABLE_COLUMN
+    },
+    {
+        .name = (lxb_char_t *) "table-caption",
+        .length = 13,
+        .unique = LXB_CSS_VALUE_TABLE_CAPTION
+    },
+    {
+        .name = (lxb_char_t *) "ruby-base",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_RUBY_BASE
+    },
+    {
+        .name = (lxb_char_t *) "ruby-text",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_RUBY_TEXT
+    },
+    {
+        .name = (lxb_char_t *) "ruby-base-container",
+        .length = 19,
+        .unique = LXB_CSS_VALUE_RUBY_BASE_CONTAINER
+    },
+    {
+        .name = (lxb_char_t *) "ruby-text-container",
+        .length = 19,
+        .unique = LXB_CSS_VALUE_RUBY_TEXT_CONTAINER
+    },
+    {
+        .name = (lxb_char_t *) "contents",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_CONTENTS
+    },
+    {
+        .name = (lxb_char_t *) "inline-block",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_INLINE_BLOCK
+    },
+    {
+        .name = (lxb_char_t *) "inline-table",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_INLINE_TABLE
+    },
+    {
+        .name = (lxb_char_t *) "inline-flex",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_INLINE_FLEX
+    },
+    {
+        .name = (lxb_char_t *) "inline-grid",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_INLINE_GRID
+    },
+    {
+        .name = (lxb_char_t *) "hanging",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_HANGING
+    },
+    {
+        .name = (lxb_char_t *) "content",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_CONTENT
+    },
+    {
+        .name = (lxb_char_t *) "row",
+        .length = 3,
+        .unique = LXB_CSS_VALUE_ROW
+    },
+    {
+        .name = (lxb_char_t *) "row-reverse",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_ROW_REVERSE
+    },
+    {
+        .name = (lxb_char_t *) "column",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_COLUMN
+    },
+    {
+        .name = (lxb_char_t *) "column-reverse",
+        .length = 14,
+        .unique = LXB_CSS_VALUE_COLUMN_REVERSE
+    },
+    {
+        .name = (lxb_char_t *) "_number",
+        .length = 7,
+        .unique = LXB_CSS_VALUE__NUMBER
+    },
+    {
+        .name = (lxb_char_t *) "nowrap",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_NOWRAP
+    },
+    {
+        .name = (lxb_char_t *) "wrap",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_WRAP
+    },
+    {
+        .name = (lxb_char_t *) "wrap-reverse",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_WRAP_REVERSE
+    },
+    {
+        .name = (lxb_char_t *) "snap-block",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_SNAP_BLOCK
+    },
+    {
+        .name = (lxb_char_t *) "start",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_START
+    },
+    {
+        .name = (lxb_char_t *) "end",
+        .length = 3,
+        .unique = LXB_CSS_VALUE_END
+    },
+    {
+        .name = (lxb_char_t *) "near",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_NEAR
+    },
+    {
+        .name = (lxb_char_t *) "snap-inline",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_SNAP_INLINE
+    },
+    {
+        .name = (lxb_char_t *) "_integer",
+        .length = 8,
+        .unique = LXB_CSS_VALUE__INTEGER
+    },
+    {
+        .name = (lxb_char_t *) "region",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_REGION
+    },
+    {
+        .name = (lxb_char_t *) "page",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_PAGE
+    },
+    {
+        .name = (lxb_char_t *) "serif",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_SERIF
+    },
+    {
+        .name = (lxb_char_t *) "sans-serif",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_SANS_SERIF
+    },
+    {
+        .name = (lxb_char_t *) "cursive",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_CURSIVE
+    },
+    {
+        .name = (lxb_char_t *) "fantasy",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_FANTASY
+    },
+    {
+        .name = (lxb_char_t *) "monospace",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_MONOSPACE
+    },
+    {
+        .name = (lxb_char_t *) "system-ui",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_SYSTEM_UI
+    },
+    {
+        .name = (lxb_char_t *) "emoji",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_EMOJI
+    },
+    {
+        .name = (lxb_char_t *) "math",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_MATH
+    },
+    {
+        .name = (lxb_char_t *) "fangsong",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_FANGSONG
+    },
+    {
+        .name = (lxb_char_t *) "ui-serif",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_UI_SERIF
+    },
+    {
+        .name = (lxb_char_t *) "ui-sans-serif",
+        .length = 13,
+        .unique = LXB_CSS_VALUE_UI_SANS_SERIF
+    },
+    {
+        .name = (lxb_char_t *) "ui-monospace",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_UI_MONOSPACE
+    },
+    {
+        .name = (lxb_char_t *) "ui-rounded",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_UI_ROUNDED
+    },
+    {
+        .name = (lxb_char_t *) "xx-small",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_XX_SMALL
+    },
+    {
+        .name = (lxb_char_t *) "x-small",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_X_SMALL
+    },
+    {
+        .name = (lxb_char_t *) "small",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_SMALL
+    },
+    {
+        .name = (lxb_char_t *) "large",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_LARGE
+    },
+    {
+        .name = (lxb_char_t *) "x-large",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_X_LARGE
+    },
+    {
+        .name = (lxb_char_t *) "xx-large",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_XX_LARGE
+    },
+    {
+        .name = (lxb_char_t *) "xxx-large",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_XXX_LARGE
+    },
+    {
+        .name = (lxb_char_t *) "larger",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_LARGER
+    },
+    {
+        .name = (lxb_char_t *) "smaller",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_SMALLER
+    },
+    {
+        .name = (lxb_char_t *) "normal",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_NORMAL
+    },
+    {
+        .name = (lxb_char_t *) "ultra-condensed",
+        .length = 15,
+        .unique = LXB_CSS_VALUE_ULTRA_CONDENSED
+    },
+    {
+        .name = (lxb_char_t *) "extra-condensed",
+        .length = 15,
+        .unique = LXB_CSS_VALUE_EXTRA_CONDENSED
+    },
+    {
+        .name = (lxb_char_t *) "condensed",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_CONDENSED
+    },
+    {
+        .name = (lxb_char_t *) "semi-condensed",
+        .length = 14,
+        .unique = LXB_CSS_VALUE_SEMI_CONDENSED
+    },
+    {
+        .name = (lxb_char_t *) "semi-expanded",
+        .length = 13,
+        .unique = LXB_CSS_VALUE_SEMI_EXPANDED
+    },
+    {
+        .name = (lxb_char_t *) "expanded",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_EXPANDED
+    },
+    {
+        .name = (lxb_char_t *) "extra-expanded",
+        .length = 14,
+        .unique = LXB_CSS_VALUE_EXTRA_EXPANDED
+    },
+    {
+        .name = (lxb_char_t *) "ultra-expanded",
+        .length = 14,
+        .unique = LXB_CSS_VALUE_ULTRA_EXPANDED
+    },
+    {
+        .name = (lxb_char_t *) "italic",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_ITALIC
+    },
+    {
+        .name = (lxb_char_t *) "oblique",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_OBLIQUE
+    },
+    {
+        .name = (lxb_char_t *) "bold",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_BOLD
+    },
+    {
+        .name = (lxb_char_t *) "bolder",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_BOLDER
+    },
+    {
+        .name = (lxb_char_t *) "lighter",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_LIGHTER
+    },
+    {
+        .name = (lxb_char_t *) "force-end",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_FORCE_END
+    },
+    {
+        .name = (lxb_char_t *) "allow-end",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_ALLOW_END
+    },
+    {
+        .name = (lxb_char_t *) "min-content",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_MIN_CONTENT
+    },
+    {
+        .name = (lxb_char_t *) "max-content",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_MAX_CONTENT
+    },
+    {
+        .name = (lxb_char_t *) "_angle",
+        .length = 6,
+        .unique = LXB_CSS_VALUE__ANGLE
+    },
+    {
+        .name = (lxb_char_t *) "manual",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_MANUAL
+    },
+    {
+        .name = (lxb_char_t *) "loose",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_LOOSE
+    },
+    {
+        .name = (lxb_char_t *) "strict",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_STRICT
+    },
+    {
+        .name = (lxb_char_t *) "anywhere",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_ANYWHERE
+    },
+    {
+        .name = (lxb_char_t *) "visible",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_VISIBLE
+    },
+    {
+        .name = (lxb_char_t *) "clip",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_CLIP
+    },
+    {
+        .name = (lxb_char_t *) "scroll",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_SCROLL
+    },
+    {
+        .name = (lxb_char_t *) "break-word",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_BREAK_WORD
+    },
+    {
+        .name = (lxb_char_t *) "static",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_STATIC
+    },
+    {
+        .name = (lxb_char_t *) "relative",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_RELATIVE
+    },
+    {
+        .name = (lxb_char_t *) "absolute",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_ABSOLUTE
+    },
+    {
+        .name = (lxb_char_t *) "sticky",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_STICKY
+    },
+    {
+        .name = (lxb_char_t *) "fixed",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_FIXED
+    },
+    {
+        .name = (lxb_char_t *) "justify",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_JUSTIFY
+    },
+    {
+        .name = (lxb_char_t *) "match-parent",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_MATCH_PARENT
+    },
+    {
+        .name = (lxb_char_t *) "justify-all",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_JUSTIFY_ALL
+    },
+    {
+        .name = (lxb_char_t *) "all",
+        .length = 3,
+        .unique = LXB_CSS_VALUE_ALL
+    },
+    {
+        .name = (lxb_char_t *) "digits",
+        .length = 6,
+        .unique = LXB_CSS_VALUE_DIGITS
+    },
+    {
+        .name = (lxb_char_t *) "underline",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_UNDERLINE
+    },
+    {
+        .name = (lxb_char_t *) "overline",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_OVERLINE
+    },
+    {
+        .name = (lxb_char_t *) "line-through",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_LINE_THROUGH
+    },
+    {
+        .name = (lxb_char_t *) "blink",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_BLINK
+    },
+    {
+        .name = (lxb_char_t *) "wavy",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_WAVY
+    },
+    {
+        .name = (lxb_char_t *) "each-line",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_EACH_LINE
+    },
+    {
+        .name = (lxb_char_t *) "inter-word",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_INTER_WORD
+    },
+    {
+        .name = (lxb_char_t *) "inter-character",
+        .length = 15,
+        .unique = LXB_CSS_VALUE_INTER_CHARACTER
+    },
+    {
+        .name = (lxb_char_t *) "mixed",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_MIXED
+    },
+    {
+        .name = (lxb_char_t *) "upright",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_UPRIGHT
+    },
+    {
+        .name = (lxb_char_t *) "sideways",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_SIDEWAYS
+    },
+    {
+        .name = (lxb_char_t *) "ellipsis",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_ELLIPSIS
+    },
+    {
+        .name = (lxb_char_t *) "capitalize",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_CAPITALIZE
+    },
+    {
+        .name = (lxb_char_t *) "uppercase",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_UPPERCASE
+    },
+    {
+        .name = (lxb_char_t *) "lowercase",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_LOWERCASE
+    },
+    {
+        .name = (lxb_char_t *) "full-width",
+        .length = 10,
+        .unique = LXB_CSS_VALUE_FULL_WIDTH
+    },
+    {
+        .name = (lxb_char_t *) "full-size-kana",
+        .length = 14,
+        .unique = LXB_CSS_VALUE_FULL_SIZE_KANA
+    },
+    {
+        .name = (lxb_char_t *) "embed",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_EMBED
+    },
+    {
+        .name = (lxb_char_t *) "isolate",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_ISOLATE
+    },
+    {
+        .name = (lxb_char_t *) "bidi-override",
+        .length = 13,
+        .unique = LXB_CSS_VALUE_BIDI_OVERRIDE
+    },
+    {
+        .name = (lxb_char_t *) "isolate-override",
+        .length = 16,
+        .unique = LXB_CSS_VALUE_ISOLATE_OVERRIDE
+    },
+    {
+        .name = (lxb_char_t *) "plaintext",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_PLAINTEXT
+    },
+    {
+        .name = (lxb_char_t *) "collapse",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_COLLAPSE
+    },
+    {
+        .name = (lxb_char_t *) "pre",
+        .length = 3,
+        .unique = LXB_CSS_VALUE_PRE
+    },
+    {
+        .name = (lxb_char_t *) "pre-wrap",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_PRE_WRAP
+    },
+    {
+        .name = (lxb_char_t *) "break-spaces",
+        .length = 12,
+        .unique = LXB_CSS_VALUE_BREAK_SPACES
+    },
+    {
+        .name = (lxb_char_t *) "pre-line",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_PRE_LINE
+    },
+    {
+        .name = (lxb_char_t *) "keep-all",
+        .length = 8,
+        .unique = LXB_CSS_VALUE_KEEP_ALL
+    },
+    {
+        .name = (lxb_char_t *) "break-all",
+        .length = 9,
+        .unique = LXB_CSS_VALUE_BREAK_ALL
+    },
+    {
+        .name = (lxb_char_t *) "both",
+        .length = 4,
+        .unique = LXB_CSS_VALUE_BOTH
+    },
+    {
+        .name = (lxb_char_t *) "minimum",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_MINIMUM
+    },
+    {
+        .name = (lxb_char_t *) "maximum",
+        .length = 7,
+        .unique = LXB_CSS_VALUE_MAXIMUM
+    },
+    {
+        .name = (lxb_char_t *) "clear",
+        .length = 5,
+        .unique = LXB_CSS_VALUE_CLEAR
+    },
+    {
+        .name = (lxb_char_t *) "horizontal-tb",
+        .length = 13,
+        .unique = LXB_CSS_VALUE_HORIZONTAL_TB
+    },
+    {
+        .name = (lxb_char_t *) "vertical-rl",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_VERTICAL_RL
+    },
+    {
+        .name = (lxb_char_t *) "vertical-lr",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_VERTICAL_LR
+    },
+    {
+        .name = (lxb_char_t *) "sideways-rl",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_SIDEWAYS_RL
+    },
+    {
+        .name = (lxb_char_t *) "sideways-lr",
+        .length = 11,
+        .unique = LXB_CSS_VALUE_SIDEWAYS_LR
+    }
 };
 
 static const lexbor_shs_entry_t lxb_css_value_shs[373] = 

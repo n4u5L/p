@@ -12,6 +12,9 @@ extern "C" {
 #endif
 
 #include "lexbor/style/base.h"
+#include "lexbor/style/computed.h"
+#include "lexbor/style/resolver.h"
+#include "lexbor/style/property_compute.h"
 #include "lexbor/dom/interfaces/document.h"
 #include "lexbor/html/html.h"
 #include "lexbor/css/css.h"
