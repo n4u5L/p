@@ -1,9 +1,3 @@
-/*
- * Copyright (C) 2026 Alexander Borisov
- *
- * Author: Alexander Borisov <borisov@lexbor.com>
- */
-
 #ifndef LEXBOR_STYLE_COMPUTED_H
 #define LEXBOR_STYLE_COMPUTED_H
 
@@ -90,7 +84,7 @@ typedef struct {
   lxb_css_overflow_y_type_t overflow_y;
   double opacity;
   bool z_index_auto;
-  long z_index;
+  int32_t z_index;
 } lxb_style_computed_non_inherited_t;
 
 typedef struct {
@@ -154,6 +148,10 @@ lxb_style_computed_set_initial(lxb_style_computed_t* style,
                                double initial_font_size,
                                double initial_line_height);
 
+/*
+ * Mutable accessors detach only data groups. The caller must own the
+ * top-level lxb_style_computed_t exclusively (style->refs == 1).
+ */
 LXB_API lxb_style_computed_inherited_t*
 lxb_style_computed_inherited_mutable(lxb_style_computed_t* style);
 
@@ -174,7 +172,7 @@ lxb_style_computed_visual_mutable(lxb_style_computed_t* style);
 
 LXB_API lxb_status_t
 lxb_style_computed_detach_for_property(lxb_style_computed_t* style,
-                                       uintptr_t id);
+                                       lxb_css_property_type_t id);
 
 #ifdef __cplusplus
 } /* extern "C" */

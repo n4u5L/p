@@ -48,7 +48,7 @@ lxb_style_resolver_default_context = {
     19.2
 };
 
-static const uintptr_t lxb_style_compute_order[] = {
+static const lxb_css_property_type_t lxb_style_compute_order[] = {
     LXB_CSS_PROPERTY_DIRECTION,
     LXB_CSS_PROPERTY_WRITING_MODE,
     LXB_CSS_PROPERTY_COLOR,
@@ -227,7 +227,7 @@ lxb_style_resolver_resolve_element(lxb_style_resolver_t *resolver,
     const lxb_style_computed_t *parent;
     lxb_style_property_compute_f compute;
     lxb_style_compute_ctx_t ctx;
-    uintptr_t id;
+    lxb_css_property_type_t id;
     size_t i;
 
     if (resolver == NULL || element == NULL) {

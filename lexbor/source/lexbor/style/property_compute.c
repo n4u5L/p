@@ -76,7 +76,7 @@ lxb_style_color_rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 
 
 lxb_style_property_compute_f
-lxb_style_property_compute_by_id(uintptr_t id)
+lxb_style_property_compute_by_id(lxb_css_property_type_t id)
 {
     switch (id) {
         case LXB_CSS_PROPERTY_BACKGROUND_COLOR:

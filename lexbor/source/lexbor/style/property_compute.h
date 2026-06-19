@@ -18,7 +18,7 @@ typedef void (*lxb_style_property_compute_f)(void *ctx);
 
 
 LXB_API lxb_style_property_compute_f
-lxb_style_property_compute_by_id(uintptr_t id);
+lxb_style_property_compute_by_id(lxb_css_property_type_t id);
 
 LXB_API void lxb_css_property_compute_background_color(void *ctx);
 LXB_API void lxb_css_property_compute_border(void *ctx);
