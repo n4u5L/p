@@ -139,8 +139,7 @@ void dumpTree(lxb_dom_node_t* node, const style::StyleResolver& resolver,
       std::printf("display=%d ", static_cast<int>(cs->Display()));
       std::printf("font-size=%.1f ", cs->Font().sizePx);
       std::printf("weight=%d ", cs->Font().weight);
-      std::printf("color=#%02x%02x%02x ", cs->InheritedData().color.r,
-                  cs->InheritedData().color.g, cs->InheritedData().color.b);
+      std::printf("color=#%02x%02x%02x ", cs->InheritedData().color.r, cs->InheritedData().color.g, cs->InheritedData().color.b);
       std::printf("bg=#%02x%02x%02x%02x ",
                   cs->BackgroundData().backgroundColor.r,
                   cs->BackgroundData().backgroundColor.g,
@@ -157,7 +156,7 @@ void dumpTree(lxb_dom_node_t* node, const style::StyleResolver& resolver,
   }
 }
 
-} // 匿名命名空间
+} // namespace
 
 int main() {
   lxb_html_parser_t* htmlParser = lxb_html_parser_create();
@@ -192,7 +191,8 @@ int main() {
 
   auto parseChunk = [&](const char* data) -> bool {
     if (lxb_html_parse_chunk_process(
-            htmlParser, reinterpret_cast<const lxb_char_t*>(data),
+            htmlParser,
+            reinterpret_cast<const lxb_char_t*>(data),
             std::strlen(data)) != LXB_STATUS_OK) {
       return false;
     }

@@ -52,23 +52,15 @@ typedef struct {
   lxb_style_color_t color;
 } lxb_style_computed_border_t;
 
-typedef struct lxb_style_computed lxb_style_computed_t;
-typedef struct lxb_style_computed_rare_inherited lxb_style_computed_rare_inherited_t;
-typedef struct lxb_style_computed_inherited lxb_style_computed_inherited_t;
-typedef struct lxb_style_computed_non_inherited lxb_style_computed_non_inherited_t;
-typedef struct lxb_style_computed_box lxb_style_computed_box_t;
-typedef struct lxb_style_computed_surround lxb_style_computed_surround_t;
-typedef struct lxb_style_computed_visual lxb_style_computed_visual_t;
-
-struct lxb_style_computed_rare_inherited {
+typedef struct {
   size_t refs;
 
   lxb_css_text_align_type_t text_align;
   lxb_css_white_space_type_t white_space;
   lxb_css_writing_mode_type_t writing_mode;
-};
+} lxb_style_computed_rare_inherited_t;
 
-struct lxb_style_computed_inherited {
+typedef struct {
   size_t refs;
 
   lxb_style_color_t color;
@@ -82,9 +74,9 @@ struct lxb_style_computed_inherited {
   lxb_css_font_stretch_type_t font_stretch_type;
   double font_stretch;
   lxb_style_computed_rare_inherited_t* rare;
-};
+} lxb_style_computed_inherited_t;
 
-struct lxb_style_computed_non_inherited {
+typedef struct {
   size_t refs;
 
   lxb_css_display_type_t display_a;
@@ -99,9 +91,9 @@ struct lxb_style_computed_non_inherited {
   double opacity;
   bool z_index_auto;
   long z_index;
-};
+} lxb_style_computed_non_inherited_t;
 
-struct lxb_style_computed_box {
+typedef struct {
   size_t refs;
 
   lxb_style_computed_value_t width;
@@ -111,23 +103,23 @@ struct lxb_style_computed_box {
   lxb_style_computed_value_t max_width;
   lxb_style_computed_value_t max_height;
   lxb_style_computed_value_t inset[LXB_STYLE_EDGE__LAST_ENTRY];
-};
+} lxb_style_computed_box_t;
 
-struct lxb_style_computed_surround {
+typedef struct {
   size_t refs;
 
   lxb_style_computed_value_t margin[LXB_STYLE_EDGE__LAST_ENTRY];
   lxb_style_computed_value_t padding[LXB_STYLE_EDGE__LAST_ENTRY];
   lxb_style_computed_border_t border[LXB_STYLE_EDGE__LAST_ENTRY];
-};
+} lxb_style_computed_surround_t;
 
-struct lxb_style_computed_visual {
+typedef struct {
   size_t refs;
 
   lxb_style_color_t background_color;
-};
+} lxb_style_computed_visual_t;
 
-struct lxb_style_computed {
+typedef struct {
   size_t refs;
 
   lxb_style_computed_inherited_t* inherited;
@@ -135,7 +127,7 @@ struct lxb_style_computed {
   lxb_style_computed_box_t* box;
   lxb_style_computed_surround_t* surround;
   lxb_style_computed_visual_t* visual;
-};
+} lxb_style_computed_t;
 
 LXB_API lxb_style_computed_t*
 lxb_style_computed_create(void);
