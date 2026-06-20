@@ -117,7 +117,6 @@ int main() {
     lxb_html_parser_destroy(parser);
     return 1;
   }
-
   lxb_dom_node_t* root = lxb_dom_interface_node(doc);
   lxb_dom_element_t* parent = findById(root, "parent");
   lxb_dom_element_t* child = findById(root, "child");

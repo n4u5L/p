@@ -258,7 +258,16 @@ lxb_dom_node_interface_copy(lxb_dom_node_t *dst,
 lxb_dom_node_t *
 lxb_dom_node_destroy(lxb_dom_node_t *node)
 {
+    lxb_dom_document_t *doc = node->owner_document;
+
     lxb_dom_node_remove(node);
+
+    if (!(lxb_dom_document_opt(doc) & LXB_DOM_DOCUMENT_OPT_WO_EVENTS)
+        && doc->mutation->destroy != NULL)
+    {
+        (void) doc->mutation->destroy(node);
+    }
+
     return lxb_dom_document_destroy_interface(node);
 }
 

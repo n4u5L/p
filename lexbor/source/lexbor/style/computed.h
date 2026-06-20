@@ -138,6 +138,8 @@ typedef struct {
 
 typedef struct {
   size_t refs;
+  uintptr_t cache_id;
+  size_t cache_generation;
 
   lxb_style_computed_inherited_t* inherited;
   lxb_style_computed_non_inherited_t* non_inherited;

@@ -7,31 +7,18 @@
 #include "lexbor/style/resolver.h"
 #include "lexbor/style/property_compute.h"
 #include "lexbor/style/dom/interfaces/element.h"
-#include "lexbor/core/array_obj.h"
-
-
-typedef struct {
-    const lxb_dom_element_t    *element;
-    lxb_style_computed_t       *style;
-    bool                       dirty;
-}
-lxb_style_resolver_entry_t;
 
 struct lxb_style_resolver {
-    lexbor_array_obj_t           entries;
     lxb_style_resolve_context_t  ctx;
     lxb_style_computed_t         initial;
+    uintptr_t                    cache_id;
+    size_t                       generation;
     bool                         initialized;
 };
 
 
-static lxb_style_resolver_entry_t *
-lxb_style_resolver_entry_find(lxb_style_resolver_t *resolver,
-                              const lxb_dom_element_t *element);
+static uintptr_t lxb_style_resolver_cache_id_next = 1;
 
-static lxb_style_resolver_entry_t *
-lxb_style_resolver_entry_get(lxb_style_resolver_t *resolver,
-                             const lxb_dom_element_t *element);
 
 static lxb_status_t
 lxb_style_resolver_resolve_subtree(lxb_style_resolver_t *resolver,
@@ -118,16 +105,15 @@ lxb_style_resolver_init(lxb_style_resolver_t *resolver)
     }
 
     resolver->ctx = lxb_style_resolver_default_context;
-
-    status = lexbor_array_obj_init(&resolver->entries, 128,
-                                   sizeof(lxb_style_resolver_entry_t));
-    if (status != LXB_STATUS_OK) {
-        return status;
+    resolver->cache_id = lxb_style_resolver_cache_id_next++;
+    if (resolver->cache_id == 0) {
+        resolver->cache_id = lxb_style_resolver_cache_id_next++;
     }
+
+    resolver->generation = 1;
 
     status = lxb_style_resolver_initial_set(resolver);
     if (status != LXB_STATUS_OK) {
-        lexbor_array_obj_destroy(&resolver->entries, false);
         return status;
     }
 
@@ -139,21 +125,15 @@ lxb_style_resolver_init(lxb_style_resolver_t *resolver)
 void
 lxb_style_resolver_clean(lxb_style_resolver_t *resolver)
 {
-    size_t i, length;
-    lxb_style_resolver_entry_t *entry;
-
     if (resolver == NULL || !resolver->initialized) {
         return;
     }
 
-    length = lexbor_array_obj_length(&resolver->entries);
-
-    for (i = 0; i < length; i++) {
-        entry = lexbor_array_obj_get(&resolver->entries, i);
-        lxb_style_computed_unref(entry->style);
+    resolver->generation++;
+    if (resolver->generation == 0) {
+        resolver->generation++;
     }
 
-    lexbor_array_obj_clean(&resolver->entries);
     (void) lxb_style_resolver_initial_set(resolver);
 }
 
@@ -167,7 +147,6 @@ lxb_style_resolver_destroy(lxb_style_resolver_t *resolver, bool self_destroy)
     if (resolver->initialized) {
         lxb_style_resolver_clean(resolver);
         lxb_style_computed_destroy(&resolver->initial);
-        lexbor_array_obj_destroy(&resolver->entries, false);
     }
 
     if (self_destroy) {
@@ -196,7 +175,10 @@ lxb_style_resolver_context_set(lxb_style_resolver_t *resolver,
     }
 
     (void) lxb_style_resolver_initial_set(resolver);
-    lxb_style_resolver_invalidate_subtree(resolver, NULL);
+    resolver->generation++;
+    if (resolver->generation == 0) {
+        resolver->generation++;
+    }
 }
 
 lxb_status_t
@@ -222,7 +204,6 @@ lxb_style_resolver_resolve_element(lxb_style_resolver_t *resolver,
                                    lxb_dom_element_t *element)
 {
     lxb_dom_node_t *parent_node;
-    lxb_style_resolver_entry_t *entry;
     lxb_style_computed_t *computed, *old;
     const lxb_style_computed_t *parent;
     lxb_style_property_compute_f compute;
@@ -234,13 +215,14 @@ lxb_style_resolver_resolve_element(lxb_style_resolver_t *resolver,
         return NULL;
     }
 
-    entry = lxb_style_resolver_entry_get(resolver, element);
-    if (entry == NULL) {
-        return NULL;
-    }
+    old = element->computed_style;
 
-    if (!entry->dirty && entry->style != NULL) {
-        return entry->style;
+    if (!(element->condition & LXB_DOM_ELEMENT_CONDITION_DIRTY_COMPUTED_STYLE)
+        && old != NULL
+        && old->cache_id == resolver->cache_id
+        && old->cache_generation == resolver->generation)
+    {
+        return old;
     }
 
     parent = &resolver->initial;
@@ -292,11 +274,11 @@ lxb_style_resolver_resolve_element(lxb_style_resolver_t *resolver,
         }
     }
 
-    old = entry->style;
-
     if (old != NULL && lxb_style_computed_equal(old, computed)) {
+        old->cache_id = resolver->cache_id;
+        old->cache_generation = resolver->generation;
         lxb_style_computed_unref(computed);
-        entry->dirty = false;
+        element->condition &= ~LXB_DOM_ELEMENT_CONDITION_DIRTY_COMPUTED_STYLE;
         return old;
     }
 
@@ -304,56 +286,58 @@ lxb_style_resolver_resolve_element(lxb_style_resolver_t *resolver,
         lxb_style_computed_unref(old);
     }
 
-    entry->style = computed;
-    entry->dirty = false;
+    computed->cache_id = resolver->cache_id;
+    computed->cache_generation = resolver->generation;
 
-    return entry->style;
+    element->computed_style = computed;
+    element->condition &= ~LXB_DOM_ELEMENT_CONDITION_DIRTY_COMPUTED_STYLE;
+
+    return element->computed_style;
 }
 
 const lxb_style_computed_t *
 lxb_style_resolver_style_by_element(lxb_style_resolver_t *resolver,
                                     const lxb_dom_element_t *element)
 {
-    lxb_style_resolver_entry_t *entry;
+    const lxb_style_computed_t *style;
 
     if (resolver == NULL || element == NULL) {
         return NULL;
     }
 
-    entry = lxb_style_resolver_entry_find(resolver, element);
-    if (entry == NULL || entry->dirty) {
+    if (element->condition & LXB_DOM_ELEMENT_CONDITION_DIRTY_COMPUTED_STYLE) {
         return NULL;
     }
 
-    return entry->style;
+    style = element->computed_style;
+
+    if (style == NULL || style->cache_id != resolver->cache_id
+        || style->cache_generation != resolver->generation)
+    {
+        return NULL;
+    }
+
+    return style;
 }
 
 void
 lxb_style_resolver_invalidate(lxb_style_resolver_t *resolver,
                               lxb_dom_element_t *element)
 {
-    lxb_style_resolver_entry_t *entry;
-    size_t i, length;
-
     if (resolver == NULL) {
         return;
     }
 
     if (element == NULL) {
-        length = lexbor_array_obj_length(&resolver->entries);
-
-        for (i = 0; i < length; i++) {
-            entry = lexbor_array_obj_get(&resolver->entries, i);
-            entry->dirty = true;
+        resolver->generation++;
+        if (resolver->generation == 0) {
+            resolver->generation++;
         }
 
         return;
     }
 
-    entry = lxb_style_resolver_entry_find(resolver, element);
-    if (entry != NULL) {
-        entry->dirty = true;
-    }
+    element->condition |= LXB_DOM_ELEMENT_CONDITION_DIRTY_COMPUTED_STYLE;
 }
 
 void
@@ -367,7 +351,11 @@ lxb_style_resolver_invalidate_subtree(lxb_style_resolver_t *resolver,
     }
 
     if (element == NULL) {
-        lxb_style_resolver_invalidate(resolver, NULL);
+        resolver->generation++;
+        if (resolver->generation == 0) {
+            resolver->generation++;
+        }
+
         return;
     }
 
@@ -387,48 +375,6 @@ lxb_style_resolver_invalidate_subtree(lxb_style_resolver_t *resolver,
 
         child = child->next;
     }
-}
-
-static lxb_style_resolver_entry_t *
-lxb_style_resolver_entry_find(lxb_style_resolver_t *resolver,
-                              const lxb_dom_element_t *element)
-{
-    size_t i, length;
-    lxb_style_resolver_entry_t *entry;
-
-    length = lexbor_array_obj_length(&resolver->entries);
-
-    for (i = 0; i < length; i++) {
-        entry = lexbor_array_obj_get(&resolver->entries, i);
-        if (entry->element == element) {
-            return entry;
-        }
-    }
-
-    return NULL;
-}
-
-static lxb_style_resolver_entry_t *
-lxb_style_resolver_entry_get(lxb_style_resolver_t *resolver,
-                             const lxb_dom_element_t *element)
-{
-    lxb_style_resolver_entry_t *entry;
-
-    entry = lxb_style_resolver_entry_find(resolver, element);
-    if (entry != NULL) {
-        return entry;
-    }
-
-    entry = lexbor_array_obj_push(&resolver->entries);
-    if (entry == NULL) {
-        return NULL;
-    }
-
-    entry->element = element;
-    entry->style = NULL;
-    entry->dirty = true;
-
-    return entry;
 }
 
 static lxb_status_t

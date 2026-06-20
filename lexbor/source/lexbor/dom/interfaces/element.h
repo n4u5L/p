@@ -39,7 +39,8 @@ typedef enum {
  */
 typedef enum {
   LXB_DOM_ELEMENT_CONDITION_OK = 0x00,
-  LXB_DOM_ELEMENT_CONDITION_DIRTY_STYLE = 1 << 0
+  LXB_DOM_ELEMENT_CONDITION_DIRTY_STYLE = 1 << 0,
+  LXB_DOM_ELEMENT_CONDITION_DIRTY_COMPUTED_STYLE = 1 << 1
 } lxb_dom_element_condition_t;
 
 typedef lxb_status_t (*lxb_dom_element_attr_change_f)(lxb_dom_element_t* element,

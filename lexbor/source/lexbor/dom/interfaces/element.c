@@ -99,6 +99,9 @@ lxb_dom_element_interface_copy(lxb_dom_element_t *dst,
         return status;
     }
 
+    dst->computed_style = NULL;
+    dst->condition |= LXB_DOM_ELEMENT_CONDITION_DIRTY_COMPUTED_STYLE;
+
     document = lxb_dom_interface_node(dst)->owner_document;
     attr = src->first_attr;
 

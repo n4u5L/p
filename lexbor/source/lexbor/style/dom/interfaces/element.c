@@ -58,6 +58,35 @@ static lxb_status_t
 lxb_dom_element_style_serialize_str_cb(const lxb_char_t* data,
                                        size_t len, void* ctx);
 
+static void
+lxb_dom_element_computed_style_invalidate_subtree(lxb_dom_element_t* element);
+
+static lexbor_action_t
+lxb_dom_element_computed_style_dirty_cb(lxb_dom_node_t* node, void* ctx);
+
+static void
+lxb_dom_element_computed_style_invalidate_subtree(lxb_dom_element_t* element) {
+  if (element == NULL) {
+    return;
+  }
+
+  element->condition |= LXB_DOM_ELEMENT_CONDITION_DIRTY_COMPUTED_STYLE;
+  lxb_dom_node_simple_walk(lxb_dom_interface_node(element),
+                           lxb_dom_element_computed_style_dirty_cb, NULL);
+}
+
+static lexbor_action_t
+lxb_dom_element_computed_style_dirty_cb(lxb_dom_node_t* node, void* ctx) {
+  (void) ctx;
+
+  if (node->type == LXB_DOM_NODE_TYPE_ELEMENT) {
+    lxb_dom_interface_element(node)->condition |=
+        LXB_DOM_ELEMENT_CONDITION_DIRTY_COMPUTED_STYLE;
+  }
+
+  return LEXBOR_ACTION_OK;
+}
+
 const lxb_css_rule_declaration_t*
 lxb_dom_element_style_by_name(const lxb_dom_element_t* element,
                               const lxb_char_t* name, size_t size) {
@@ -181,6 +210,9 @@ lxb_style_document_cb(lxb_dom_node_t* node,
                       lxb_css_selector_specificity_t spec, void* ctx) {
   lxb_css_rule_style_t* style = ctx;
 
+  lxb_dom_element_computed_style_invalidate_subtree(
+      lxb_dom_interface_element(node));
+
   return lxb_dom_element_style_list_append(lxb_dom_interface_element(node),
                                            style->declarations,
                                            spec);
@@ -227,6 +259,8 @@ lxb_dom_element_style_append(lxb_dom_element_t* element,
 
   lxb_dom_document_t* doc = lxb_dom_interface_node(element)->owner_document;
   lxb_dom_document_css_t* css = doc->css;
+
+  lxb_dom_element_computed_style_invalidate_subtree(element);
 
   id = declr->type;
 
@@ -407,6 +441,7 @@ void lxb_dom_element_style_remove_by_id(lxb_dom_element_t* element, uintptr_t id
                                               element->style,
                                               id);
   if (node != NULL) {
+    lxb_dom_element_computed_style_invalidate_subtree(element);
     lxb_dom_element_style_remove_all(element, node);
   }
 }
@@ -422,6 +457,8 @@ lxb_dom_element_style_remove_all_not(lxb_dom_element_t* element,
   root = &element->style;
   weak = style->weak;
   prev = NULL;
+
+  lxb_dom_element_computed_style_invalidate_subtree(element);
 
   while (weak != NULL) {
     next = weak->next;
@@ -472,6 +509,8 @@ lxb_dom_element_style_remove_all(lxb_dom_element_t* element,
   root = &element->style;
   weak = style->weak;
 
+  lxb_dom_element_computed_style_invalidate_subtree(element);
+
   while (weak != NULL) {
     next = weak->next;
 
@@ -491,6 +530,8 @@ lxb_dom_element_style_remove_non_inline(lxb_dom_element_t* element) {
   if (element->style == NULL) {
     return LXB_STATUS_OK;
   }
+
+  lxb_dom_element_computed_style_invalidate_subtree(element);
 
   doc = lxb_dom_element_document(element);
 
