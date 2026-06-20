@@ -20,17 +20,38 @@ typedef enum {
 
 typedef struct {
   lxb_style_computed_value_type_t type;
-  lxb_css_unit_t unit;
-  double num;
-  uintptr_t keyword;
+  union {
+    struct {
+      double num;
+      lxb_css_unit_t unit;
+    } length;
+
+    double number;
+    int32_t integer;
+    uintptr_t keyword;
+  } u;
 } lxb_style_computed_value_t;
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4201)
+#endif
+
 typedef struct {
-  uint8_t r;
-  uint8_t g;
-  uint8_t b;
-  uint8_t a;
+  union {
+    float rgba[4];
+    struct {
+      float r;
+      float g;
+      float b;
+      float a;
+    };
+  };
 } lxb_style_color_t;
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 typedef enum {
   LXB_STYLE_EDGE_TOP = 0x00,
@@ -73,9 +94,11 @@ typedef struct {
 typedef struct {
   size_t refs;
 
-  lxb_css_display_type_t display_a;
-  lxb_css_display_type_t display_b;
-  lxb_css_display_type_t display_c;
+  lxb_css_display_type_t display_outside;
+  lxb_css_display_type_t display_inside;
+  bool display_list_item;
+  lxb_css_display_type_t display_box;
+  lxb_css_display_type_t display_internal;
   lxb_css_position_type_t position;
   lxb_css_box_sizing_type_t box_sizing;
   lxb_css_float_type_t floatp;

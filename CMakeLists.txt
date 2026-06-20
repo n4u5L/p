@@ -61,22 +61,9 @@ else()
     set(FREETYPE_LINK_TARGET freetype)
 endif()
 
-# Self-built style engine (the "second half" lexbor does not provide).
-# Lexbor-only so it can be built/tested without the full Qt graphics stack.
-add_library(style STATIC
-    src/style/style_props.cpp
-    src/style/length_resolve.cpp
-    src/style/style_arena.cpp
-    src/style/resolver.cpp
-    src/style/style_engine.cpp
-    src/style/ua_stylesheet.cpp
-)
-target_include_directories(style PUBLIC src/style)
-target_link_libraries(style PUBLIC Lexbor::Lexbor)
-
-# End-to-end smoke test for the style engine (Lexbor-only, no Qt).
+# End-to-end smoke test for Lexbor computed style (Lexbor-only, no Qt).
 add_executable(style_smoke tests/style_smoke.cpp)
-target_link_libraries(style_smoke PRIVATE style Lexbor::Lexbor)
+target_link_libraries(style_smoke PRIVATE Lexbor::Lexbor)
 
 add_executable(main
 )
@@ -93,7 +80,6 @@ target_link_libraries(main PRIVATE
     harfbuzz::harfbuzz
     ws2_32
     bcrypt
-    style
 )
 
 target_compile_definitions(main PRIVATE

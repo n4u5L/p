@@ -20,6 +20,13 @@ static lxb_style_global_t
 lxb_style_compute_global(uintptr_t type, bool inherited,
                          const lxb_style_computed_t *parent);
 
+static void
+lxb_style_compute_display_initial(lxb_style_computed_non_inherited_t *dst);
+
+static void
+lxb_style_compute_display_value(lxb_style_computed_non_inherited_t *dst,
+                                const lxb_css_property_display_t *src);
+
 static double
 lxb_style_compute_length_px(const lxb_style_compute_ctx_t *ctx,
                             const lxb_css_value_length_t *length);
@@ -72,7 +79,7 @@ lxb_style_compute_line_height_initial(const lxb_style_compute_ctx_t *ctx,
                                       double font_size);
 
 static lxb_style_color_t
-lxb_style_color_rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+lxb_style_color_rgba(double r, double g, double b, double a);
 
 
 lxb_style_property_compute_f
@@ -201,22 +208,25 @@ lxb_css_property_compute_display(void *ctx)
     global = lxb_style_compute_global(p->a, false, c->parent);
 
     if (global == LXB_STYLE_GLOBAL_PARENT) {
-        c->style->non_inherited->display_a = c->parent->non_inherited->display_a;
-        c->style->non_inherited->display_b = c->parent->non_inherited->display_b;
-        c->style->non_inherited->display_c = c->parent->non_inherited->display_c;
+        c->style->non_inherited->display_outside =
+            c->parent->non_inherited->display_outside;
+        c->style->non_inherited->display_inside =
+            c->parent->non_inherited->display_inside;
+        c->style->non_inherited->display_list_item =
+            c->parent->non_inherited->display_list_item;
+        c->style->non_inherited->display_box =
+            c->parent->non_inherited->display_box;
+        c->style->non_inherited->display_internal =
+            c->parent->non_inherited->display_internal;
         return;
     }
 
     if (global == LXB_STYLE_GLOBAL_INITIAL) {
-        c->style->non_inherited->display_a = LXB_CSS_DISPLAY_INLINE;
-        c->style->non_inherited->display_b = LXB_CSS_PROPERTY__UNDEF;
-        c->style->non_inherited->display_c = LXB_CSS_PROPERTY__UNDEF;
+        lxb_style_compute_display_initial(c->style->non_inherited);
         return;
     }
 
-    c->style->non_inherited->display_a = p->a;
-    c->style->non_inherited->display_b = p->b;
-    c->style->non_inherited->display_c = p->c;
+    lxb_style_compute_display_value(c->style->non_inherited, p);
 }
 
 void
@@ -415,7 +425,7 @@ lxb_css_property_compute_color(void *ctx)
     const lxb_css_rule_declaration_t *decl;
     const lxb_css_property_color_t *p;
     lxb_style_global_t global;
-    lxb_style_color_t initial = lxb_style_color_rgba(0, 0, 0, 255);
+    lxb_style_color_t initial = lxb_style_color_rgba(0.0, 0.0, 0.0, 1.0);
 
     decl = lxb_dom_element_style_by_id(c->element, LXB_CSS_PROPERTY_COLOR);
     if (decl == NULL) {
@@ -444,7 +454,7 @@ lxb_css_property_compute_background_color(void *ctx)
     const lxb_css_rule_declaration_t *decl;
     const lxb_css_property_background_color_t *p;
     lxb_style_global_t global;
-    lxb_style_color_t initial = lxb_style_color_rgba(0, 0, 0, 0);
+    lxb_style_color_t initial = lxb_style_color_rgba(0.0, 0.0, 0.0, 0.0);
 
     decl = lxb_dom_element_style_by_id(c->element,
                                        LXB_CSS_PROPERTY_BACKGROUND_COLOR);
@@ -1263,6 +1273,155 @@ lxb_style_compute_global(uintptr_t type, bool inherited,
     }
 }
 
+static void
+lxb_style_compute_display_initial(lxb_style_computed_non_inherited_t *dst)
+{
+    dst->display_outside = LXB_CSS_DISPLAY_INLINE;
+    dst->display_inside = LXB_CSS_DISPLAY_FLOW;
+    dst->display_list_item = false;
+    dst->display_box = LXB_CSS_PROPERTY__UNDEF;
+    dst->display_internal = LXB_CSS_PROPERTY__UNDEF;
+}
+
+static bool
+lxb_style_display_is_outside(lxb_css_display_type_t type)
+{
+    return type == LXB_CSS_DISPLAY_BLOCK
+           || type == LXB_CSS_DISPLAY_INLINE
+           || type == LXB_CSS_DISPLAY_RUN_IN;
+}
+
+static bool
+lxb_style_display_is_inside(lxb_css_display_type_t type)
+{
+    return type == LXB_CSS_DISPLAY_FLOW
+           || type == LXB_CSS_DISPLAY_FLOW_ROOT
+           || type == LXB_CSS_DISPLAY_TABLE
+           || type == LXB_CSS_DISPLAY_FLEX
+           || type == LXB_CSS_DISPLAY_GRID
+           || type == LXB_CSS_DISPLAY_RUBY;
+}
+
+static bool
+lxb_style_display_is_internal(lxb_css_display_type_t type)
+{
+    switch (type) {
+        case LXB_CSS_DISPLAY_TABLE_ROW_GROUP:
+        case LXB_CSS_DISPLAY_TABLE_HEADER_GROUP:
+        case LXB_CSS_DISPLAY_TABLE_FOOTER_GROUP:
+        case LXB_CSS_DISPLAY_TABLE_ROW:
+        case LXB_CSS_DISPLAY_TABLE_CELL:
+        case LXB_CSS_DISPLAY_TABLE_COLUMN_GROUP:
+        case LXB_CSS_DISPLAY_TABLE_COLUMN:
+        case LXB_CSS_DISPLAY_TABLE_CAPTION:
+        case LXB_CSS_DISPLAY_RUBY_BASE:
+        case LXB_CSS_DISPLAY_RUBY_TEXT:
+        case LXB_CSS_DISPLAY_RUBY_BASE_CONTAINER:
+        case LXB_CSS_DISPLAY_RUBY_TEXT_CONTAINER:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+static void
+lxb_style_compute_display_apply(lxb_style_computed_non_inherited_t *dst,
+                                lxb_css_display_type_t type)
+{
+    if (type == LXB_CSS_PROPERTY__UNDEF) {
+        return;
+    }
+
+    switch (type) {
+        case LXB_CSS_DISPLAY_INLINE_BLOCK:
+            dst->display_outside = LXB_CSS_DISPLAY_INLINE;
+            dst->display_inside = LXB_CSS_DISPLAY_FLOW_ROOT;
+            return;
+
+        case LXB_CSS_DISPLAY_INLINE_TABLE:
+            dst->display_outside = LXB_CSS_DISPLAY_INLINE;
+            dst->display_inside = LXB_CSS_DISPLAY_TABLE;
+            return;
+
+        case LXB_CSS_DISPLAY_INLINE_FLEX:
+            dst->display_outside = LXB_CSS_DISPLAY_INLINE;
+            dst->display_inside = LXB_CSS_DISPLAY_FLEX;
+            return;
+
+        case LXB_CSS_DISPLAY_INLINE_GRID:
+            dst->display_outside = LXB_CSS_DISPLAY_INLINE;
+            dst->display_inside = LXB_CSS_DISPLAY_GRID;
+            return;
+
+        case LXB_CSS_DISPLAY_NONE:
+        case LXB_CSS_DISPLAY_CONTENTS:
+            dst->display_box = type;
+            return;
+
+        case LXB_CSS_DISPLAY_LIST_ITEM:
+            dst->display_list_item = true;
+            return;
+
+        default:
+            break;
+    }
+
+    if (lxb_style_display_is_outside(type)) {
+        dst->display_outside = type;
+    }
+    else if (lxb_style_display_is_inside(type)) {
+        dst->display_inside = type;
+    }
+    else if (lxb_style_display_is_internal(type)) {
+        dst->display_internal = type;
+    }
+}
+
+static void
+lxb_style_compute_display_value(lxb_style_computed_non_inherited_t *dst,
+                                const lxb_css_property_display_t *src)
+{
+    dst->display_outside = LXB_CSS_PROPERTY__UNDEF;
+    dst->display_inside = LXB_CSS_PROPERTY__UNDEF;
+    dst->display_list_item = false;
+    dst->display_box = LXB_CSS_PROPERTY__UNDEF;
+    dst->display_internal = LXB_CSS_PROPERTY__UNDEF;
+
+    lxb_style_compute_display_apply(dst, src->a);
+    lxb_style_compute_display_apply(dst, src->b);
+    lxb_style_compute_display_apply(dst, src->c);
+
+    if (dst->display_box != LXB_CSS_PROPERTY__UNDEF
+        || dst->display_internal != LXB_CSS_PROPERTY__UNDEF)
+    {
+        return;
+    }
+
+    if (dst->display_outside == LXB_CSS_PROPERTY__UNDEF
+        && (dst->display_inside != LXB_CSS_PROPERTY__UNDEF
+            || dst->display_list_item))
+    {
+        dst->display_outside = (dst->display_inside == LXB_CSS_DISPLAY_RUBY)
+                               ? LXB_CSS_DISPLAY_INLINE
+                               : LXB_CSS_DISPLAY_BLOCK;
+    }
+
+    if (dst->display_inside == LXB_CSS_PROPERTY__UNDEF
+        && (dst->display_outside != LXB_CSS_PROPERTY__UNDEF
+            || dst->display_list_item))
+    {
+        dst->display_inside = LXB_CSS_DISPLAY_FLOW;
+    }
+
+    if (dst->display_outside == LXB_CSS_PROPERTY__UNDEF
+        && dst->display_inside == LXB_CSS_PROPERTY__UNDEF
+        && !dst->display_list_item)
+    {
+        lxb_style_compute_display_initial(dst);
+    }
+}
+
 static double
 lxb_style_compute_length_px(const lxb_style_compute_ctx_t *ctx,
                             const lxb_css_value_length_t *length)
@@ -1274,7 +1433,7 @@ lxb_style_compute_length_px(const lxb_style_compute_ctx_t *ctx,
     viewport_width = ctx->ctx->viewport_width;
     viewport_height = ctx->ctx->viewport_height;
 
-    switch (length->unit) {
+    switch ((uintptr_t) length->unit) {
         case LXB_CSS_UNIT_CM:
             return length->num * (96.0 / 2.54);
         case LXB_CSS_UNIT_MM:
@@ -1335,9 +1494,7 @@ lxb_style_compute_length_percentage(const lxb_style_compute_ctx_t *ctx,
             break;
         case LXB_CSS_VALUE__PERCENTAGE:
             dst->type = LXB_STYLE_COMPUTED_VALUE_PERCENTAGE;
-            dst->unit = LXB_CSS_UNIT__UNDEF;
-            dst->num = src->u.percentage.num;
-            dst->keyword = 0;
+            dst->u.number = src->u.percentage.num;
             break;
         default:
             *dst = lxb_style_compute_value_keyword(src->type);
@@ -1461,31 +1618,33 @@ lxb_style_compute_color_value(const lxb_style_compute_ctx_t *ctx,
             return current_color;
 
         case LXB_CSS_COLOR_TRANSPARENT:
-            return lxb_style_color_rgba(0, 0, 0, 0);
+            return lxb_style_color_rgba(0.0, 0.0, 0.0, 0.0);
 
         case LXB_CSS_COLOR_HEX:
-            return lxb_style_color_rgba(src->u.hex.rgba.r,
-                                        src->u.hex.rgba.g,
-                                        src->u.hex.rgba.b,
-                                        src->u.hex.rgba.a);
+            return lxb_style_color_rgba(src->u.hex.rgba.r / 255.0,
+                                        src->u.hex.rgba.g / 255.0,
+                                        src->u.hex.rgba.b / 255.0,
+                                        src->u.hex.rgba.a / 255.0);
 
         case LXB_CSS_COLOR_RGB:
         case LXB_CSS_COLOR_RGBA:
-            color = lxb_style_color_rgba(0, 0, 0, 255);
+            color = lxb_style_color_rgba(0.0, 0.0, 0.0, 1.0);
 
             if (src->u.rgb.r.type == LXB_CSS_VALUE__PERCENTAGE) {
-                color.r = (uint8_t) (255.0 * src->u.rgb.r.u.percentage.num / 100.0);
-                color.g = (uint8_t) (255.0 * src->u.rgb.g.u.percentage.num / 100.0);
-                color.b = (uint8_t) (255.0 * src->u.rgb.b.u.percentage.num / 100.0);
+                color.r = (float) (src->u.rgb.r.u.percentage.num / 100.0);
+                color.g = (float) (src->u.rgb.g.u.percentage.num / 100.0);
+                color.b = (float) (src->u.rgb.b.u.percentage.num / 100.0);
             }
             else {
-                color.r = (uint8_t) src->u.rgb.r.u.number.num;
-                color.g = (uint8_t) src->u.rgb.g.u.number.num;
-                color.b = (uint8_t) src->u.rgb.b.u.number.num;
+                color.r = (float) (src->u.rgb.r.u.number.num / 255.0);
+                color.g = (float) (src->u.rgb.g.u.number.num / 255.0);
+                color.b = (float) (src->u.rgb.b.u.number.num / 255.0);
             }
 
-            if (src->u.rgb.a.type == LXB_CSS_VALUE_NONE) {
-                color.a = 255;
+            if (src->u.rgb.a.type == LXB_CSS_VALUE__UNDEF
+                || src->u.rgb.a.type == LXB_CSS_VALUE_NONE)
+            {
+                color.a = 1.0f;
             }
             else {
                 lxb_style_compute_number_percentage(&src->u.rgb.a, &alpha);
@@ -1496,48 +1655,53 @@ lxb_style_compute_color_value(const lxb_style_compute_ctx_t *ctx,
                     alpha = 1.0;
                 }
 
-                color.a = (uint8_t) (alpha * 255.0);
+                color.a = (float) alpha;
             }
 
             return color;
 
         case LXB_CSS_COLOR_BLACK:
         case LXB_CSS_COLOR_CANVASTEXT:
-            return lxb_style_color_rgba(0, 0, 0, 255);
+            return lxb_style_color_rgba(0.0, 0.0, 0.0, 1.0);
         case LXB_CSS_COLOR_WHITE:
         case LXB_CSS_COLOR_CANVAS:
-            return lxb_style_color_rgba(255, 255, 255, 255);
+            return lxb_style_color_rgba(1.0, 1.0, 1.0, 1.0);
         case LXB_CSS_COLOR_RED:
-            return lxb_style_color_rgba(255, 0, 0, 255);
+            return lxb_style_color_rgba(1.0, 0.0, 0.0, 1.0);
         case LXB_CSS_COLOR_GREEN:
-            return lxb_style_color_rgba(0, 128, 0, 255);
+            return lxb_style_color_rgba(0.0, 128.0 / 255.0, 0.0, 1.0);
         case LXB_CSS_COLOR_BLUE:
-            return lxb_style_color_rgba(0, 0, 255, 255);
+            return lxb_style_color_rgba(0.0, 0.0, 1.0, 1.0);
         case LXB_CSS_COLOR_YELLOW:
-            return lxb_style_color_rgba(255, 255, 0, 255);
+            return lxb_style_color_rgba(1.0, 1.0, 0.0, 1.0);
         case LXB_CSS_COLOR_CYAN:
         case LXB_CSS_COLOR_AQUA:
-            return lxb_style_color_rgba(0, 255, 255, 255);
+            return lxb_style_color_rgba(0.0, 1.0, 1.0, 1.0);
         case LXB_CSS_COLOR_MAGENTA:
         case LXB_CSS_COLOR_FUCHSIA:
-            return lxb_style_color_rgba(255, 0, 255, 255);
+            return lxb_style_color_rgba(1.0, 0.0, 1.0, 1.0);
         case LXB_CSS_COLOR_GRAY:
         case LXB_CSS_COLOR_GREY:
-            return lxb_style_color_rgba(128, 128, 128, 255);
+            return lxb_style_color_rgba(128.0 / 255.0, 128.0 / 255.0,
+                                        128.0 / 255.0, 1.0);
         case LXB_CSS_COLOR_SILVER:
-            return lxb_style_color_rgba(192, 192, 192, 255);
+            return lxb_style_color_rgba(192.0 / 255.0, 192.0 / 255.0,
+                                        192.0 / 255.0, 1.0);
         case LXB_CSS_COLOR_MAROON:
-            return lxb_style_color_rgba(128, 0, 0, 255);
+            return lxb_style_color_rgba(128.0 / 255.0, 0.0, 0.0, 1.0);
         case LXB_CSS_COLOR_PURPLE:
-            return lxb_style_color_rgba(128, 0, 128, 255);
+            return lxb_style_color_rgba(128.0 / 255.0, 0.0,
+                                        128.0 / 255.0, 1.0);
         case LXB_CSS_COLOR_OLIVE:
-            return lxb_style_color_rgba(128, 128, 0, 255);
+            return lxb_style_color_rgba(128.0 / 255.0, 128.0 / 255.0,
+                                        0.0, 1.0);
         case LXB_CSS_COLOR_LIME:
-            return lxb_style_color_rgba(0, 255, 0, 255);
+            return lxb_style_color_rgba(0.0, 1.0, 0.0, 1.0);
         case LXB_CSS_COLOR_TEAL:
-            return lxb_style_color_rgba(0, 128, 128, 255);
+            return lxb_style_color_rgba(0.0, 128.0 / 255.0,
+                                        128.0 / 255.0, 1.0);
         case LXB_CSS_COLOR_NAVY:
-            return lxb_style_color_rgba(0, 0, 128, 255);
+            return lxb_style_color_rgba(0.0, 0.0, 128.0 / 255.0, 1.0);
 
         default:
             return initial;
@@ -1554,9 +1718,7 @@ lxb_style_compute_value_keyword(uintptr_t keyword)
                  : ((keyword == LXB_CSS_VALUE_NONE)
                     ? LXB_STYLE_COMPUTED_VALUE_NONE
                     : LXB_STYLE_COMPUTED_VALUE_KEYWORD);
-    value.unit = LXB_CSS_UNIT__UNDEF;
-    value.num = 0.0;
-    value.keyword = keyword;
+    value.u.keyword = keyword;
 
     return value;
 }
@@ -1567,9 +1729,8 @@ lxb_style_compute_value_length(double px)
     lxb_style_computed_value_t value;
 
     value.type = LXB_STYLE_COMPUTED_VALUE_LENGTH;
-    value.unit = LXB_CSS_UNIT_PX;
-    value.num = px;
-    value.keyword = 0;
+    value.u.length.unit = LXB_CSS_UNIT_PX;
+    value.u.length.num = px;
 
     return value;
 }
@@ -1591,14 +1752,14 @@ lxb_style_compute_line_height_initial(const lxb_style_compute_ctx_t *ctx,
 }
 
 static lxb_style_color_t
-lxb_style_color_rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+lxb_style_color_rgba(double r, double g, double b, double a)
 {
     lxb_style_color_t color;
 
-    color.r = r;
-    color.g = g;
-    color.b = b;
-    color.a = a;
+    color.r = (float) r;
+    color.g = (float) g;
+    color.b = (float) b;
+    color.a = (float) a;
 
     return color;
 }

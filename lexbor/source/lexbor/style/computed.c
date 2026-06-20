@@ -233,10 +233,10 @@ lxb_style_computed_set_initial(lxb_style_computed_t* style,
   inherited->rare = rare;
   rare = NULL;
 
-  inherited->color.r = 0;
-  inherited->color.g = 0;
-  inherited->color.b = 0;
-  inherited->color.a = 255;
+  inherited->color.r = 0.0f;
+  inherited->color.g = 0.0f;
+  inherited->color.b = 0.0f;
+  inherited->color.a = 1.0f;
   inherited->direction = LXB_CSS_DIRECTION_LTR;
   inherited->visibility = LXB_CSS_VISIBILITY_VISIBLE;
   inherited->font_size = initial_font_size;
@@ -251,9 +251,11 @@ lxb_style_computed_set_initial(lxb_style_computed_t* style,
   inherited->rare->white_space = LXB_CSS_WHITE_SPACE_NORMAL;
   inherited->rare->writing_mode = LXB_CSS_WRITING_MODE_HORIZONTAL_TB;
 
-  non_inherited->display_a = LXB_CSS_DISPLAY_INLINE;
-  non_inherited->display_b = LXB_CSS_PROPERTY__UNDEF;
-  non_inherited->display_c = LXB_CSS_PROPERTY__UNDEF;
+  non_inherited->display_outside = LXB_CSS_DISPLAY_INLINE;
+  non_inherited->display_inside = LXB_CSS_DISPLAY_FLOW;
+  non_inherited->display_list_item = false;
+  non_inherited->display_box = LXB_CSS_PROPERTY__UNDEF;
+  non_inherited->display_internal = LXB_CSS_PROPERTY__UNDEF;
   non_inherited->position = LXB_CSS_POSITION_STATIC;
   non_inherited->box_sizing = LXB_CSS_BOX_SIZING_CONTENT_BOX;
   non_inherited->floatp = LXB_CSS_FLOAT_NONE;
@@ -264,36 +266,36 @@ lxb_style_computed_set_initial(lxb_style_computed_t* style,
   non_inherited->z_index_auto = true;
   non_inherited->z_index = 0;
 
-  visual->background_color.r = 0;
-  visual->background_color.g = 0;
-  visual->background_color.b = 0;
-  visual->background_color.a = 0;
+  visual->background_color.r = 0.0f;
+  visual->background_color.g = 0.0f;
+  visual->background_color.b = 0.0f;
+  visual->background_color.a = 0.0f;
 
   box->width.type = LXB_STYLE_COMPUTED_VALUE_AUTO;
-  box->width.keyword = LXB_CSS_WIDTH_AUTO;
+  box->width.u.keyword = LXB_CSS_WIDTH_AUTO;
   box->height.type = LXB_STYLE_COMPUTED_VALUE_AUTO;
-  box->height.keyword = LXB_CSS_HEIGHT_AUTO;
+  box->height.u.keyword = LXB_CSS_HEIGHT_AUTO;
   box->min_width.type = LXB_STYLE_COMPUTED_VALUE_AUTO;
-  box->min_width.keyword = LXB_CSS_MIN_WIDTH_AUTO;
+  box->min_width.u.keyword = LXB_CSS_MIN_WIDTH_AUTO;
   box->min_height.type = LXB_STYLE_COMPUTED_VALUE_AUTO;
-  box->min_height.keyword = LXB_CSS_MIN_HEIGHT_AUTO;
+  box->min_height.u.keyword = LXB_CSS_MIN_HEIGHT_AUTO;
   box->max_width.type = LXB_STYLE_COMPUTED_VALUE_NONE;
-  box->max_width.keyword = LXB_CSS_MAX_WIDTH_NONE;
+  box->max_width.u.keyword = LXB_CSS_MAX_WIDTH_NONE;
   box->max_height.type = LXB_STYLE_COMPUTED_VALUE_NONE;
-  box->max_height.keyword = LXB_CSS_MAX_HEIGHT_NONE;
+  box->max_height.u.keyword = LXB_CSS_MAX_HEIGHT_NONE;
 
   for (i = 0; i < LXB_STYLE_EDGE__LAST_ENTRY; i++) {
     box->inset[i].type = LXB_STYLE_COMPUTED_VALUE_AUTO;
-    box->inset[i].keyword = LXB_CSS_VALUE_AUTO;
+    box->inset[i].u.keyword = LXB_CSS_VALUE_AUTO;
 
     surround->margin[i].type = LXB_STYLE_COMPUTED_VALUE_LENGTH;
-    surround->margin[i].unit = LXB_CSS_UNIT_PX;
+    surround->margin[i].u.length.unit = LXB_CSS_UNIT_PX;
 
     surround->padding[i].type = LXB_STYLE_COMPUTED_VALUE_LENGTH;
-    surround->padding[i].unit = LXB_CSS_UNIT_PX;
+    surround->padding[i].u.length.unit = LXB_CSS_UNIT_PX;
 
     surround->border[i].width.type = LXB_STYLE_COMPUTED_VALUE_LENGTH;
-    surround->border[i].width.unit = LXB_CSS_UNIT_PX;
+    surround->border[i].width.u.length.unit = LXB_CSS_UNIT_PX;
     surround->border[i].style = LXB_CSS_BORDER_NONE;
     surround->border[i].color = inherited->color;
   }
@@ -823,9 +825,11 @@ lxb_style_computed_non_inherited_equal(
     return false;
   }
 
-  return left->display_a == right->display_a &&
-         left->display_b == right->display_b &&
-         left->display_c == right->display_c &&
+  return left->display_outside == right->display_outside &&
+         left->display_inside == right->display_inside &&
+         left->display_list_item == right->display_list_item &&
+         left->display_box == right->display_box &&
+         left->display_internal == right->display_internal &&
          left->position == right->position &&
          left->box_sizing == right->box_sizing &&
          left->floatp == right->floatp &&
@@ -919,15 +923,18 @@ lxb_style_computed_value_equal(const lxb_style_computed_value_t* left,
 
   switch (left->type) {
   case LXB_STYLE_COMPUTED_VALUE_LENGTH:
-    return left->unit == right->unit && left->num == right->num;
+    return left->u.length.unit == right->u.length.unit &&
+           left->u.length.num == right->u.length.num;
 
   case LXB_STYLE_COMPUTED_VALUE_PERCENTAGE:
   case LXB_STYLE_COMPUTED_VALUE_NUMBER:
+    return left->u.number == right->u.number;
+
   case LXB_STYLE_COMPUTED_VALUE_INTEGER:
-    return left->num == right->num;
+    return left->u.integer == right->u.integer;
 
   case LXB_STYLE_COMPUTED_VALUE_KEYWORD:
-    return left->keyword == right->keyword;
+    return left->u.keyword == right->u.keyword;
 
   case LXB_STYLE_COMPUTED_VALUE_UNDEF:
   case LXB_STYLE_COMPUTED_VALUE_AUTO:
