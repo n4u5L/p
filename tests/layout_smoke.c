@@ -1187,8 +1187,12 @@ layout_dom_node_attach_layout_tree_smoke(layout_t *layout)
     layout_object_t *first_object;
     layout_object_t *flattened_object;
     layout_object_t *text_object;
+    layout_object_t *text_parent;
     layout_object_t *flattened_text_object;
+    layout_object_t *flattened_text_parent;
     layout_object_child_list_t *root_children;
+    layout_object_child_list_t *text_children;
+    layout_object_child_list_t *flattened_text_children;
 
     check(root_style != NULL && first_style != NULL && contents_style != NULL
               && flattened_style != NULL && none_style != NULL
@@ -1253,17 +1257,25 @@ layout_dom_node_attach_layout_tree_smoke(layout_t *layout)
         layout_tree_object_for_node(tree, lxb_dom_interface_node(&first));
     text_object =
         layout_tree_object_for_node(tree, lxb_dom_interface_node(&text));
+    text_parent = layout_object_parent(text_object);
+    text_children = layout_tree_children(tree, text_parent);
     root_children = layout_tree_children(tree, root_object);
     check(root_object == layout_tree_object_for_node(
-                             tree, lxb_dom_interface_node(&root)),
+                              tree, lxb_dom_interface_node(&root)),
           "layout DOM attach maps root DOM node");
     check(root_children != NULL
-              && layout_object_slow_first_child(root_children) == first_object
-              && layout_object_slow_last_child(root_children) == text_object,
-          "layout DOM attach links initial children under root");
+               && layout_object_slow_first_child(root_children) == first_object
+               && layout_object_slow_last_child(root_children) == text_parent,
+           "layout DOM attach links initial children under root");
     check(text_object != NULL
-              && layout_object_parent(text_object) == root_object,
-          "layout DOM attach creates object for non-empty text node");
+               && text_parent != NULL
+               && text_parent != root_object
+               && layout_object_is_anonymous(text_parent)
+               && layout_object_parent(text_parent) == root_object
+               && text_children != NULL
+               && layout_object_slow_first_child(text_children) == text_object
+               && layout_object_slow_last_child(text_children) == text_object,
+           "layout DOM attach creates object for non-empty text node");
     check(layout_object_style(text_object) == root_style,
           "layout DOM attach text object references parent style");
 
@@ -1279,24 +1291,35 @@ layout_dom_node_attach_layout_tree_smoke(layout_t *layout)
     flattened_text_object =
         layout_tree_object_for_node(tree,
                                     lxb_dom_interface_node(&flattened_text));
+    flattened_text_parent = layout_object_parent(flattened_text_object);
+    flattened_text_children =
+        layout_tree_children(tree, flattened_text_parent);
     root_children = layout_tree_children(tree, root_object);
     check(layout_tree_object_for_node(tree, lxb_dom_interface_node(&contents))
-              == NULL,
+               == NULL,
           "layout DOM attach keeps display:contents node transparent");
     check(flattened_object != NULL
-              && layout_object_parent(flattened_object) == root_object,
-          "layout DOM attach flattens display:contents child to parent");
-    check(layout_object_next_sibling(text_object) == flattened_object,
-          "layout DOM attach appends flattened child after existing siblings");
+               && layout_object_parent(flattened_object) == root_object,
+           "layout DOM attach flattens display:contents child to parent");
+    check(layout_object_next_sibling(text_parent) == flattened_object,
+           "layout DOM attach appends flattened child after existing siblings");
     check(layout_object_next_sibling(flattened_object)
-              == flattened_text_object,
-          "layout DOM attach creates flattened text sibling");
+               == flattened_text_parent,
+           "layout DOM attach creates flattened text sibling");
     check(flattened_text_object != NULL
-              && layout_object_parent(flattened_text_object) == root_object
-              && layout_object_style(flattened_text_object) == root_style,
-          "layout DOM attach flattened text uses nearest layout parent style");
-    check(layout_object_slow_last_child(root_children) == flattened_text_object,
-          "layout DOM attach updates root child-list tail");
+               && flattened_text_parent != NULL
+               && flattened_text_parent != root_object
+               && layout_object_is_anonymous(flattened_text_parent)
+               && layout_object_parent(flattened_text_parent) == root_object
+               && flattened_text_children != NULL
+               && layout_object_slow_first_child(flattened_text_children)
+                      == flattened_text_object
+               && layout_object_slow_last_child(flattened_text_children)
+                      == flattened_text_object
+               && layout_object_style(flattened_text_object) == root_style,
+           "layout DOM attach flattened text uses nearest layout parent style");
+    check(layout_object_slow_last_child(root_children) == flattened_text_parent,
+           "layout DOM attach updates root child-list tail");
     check(layout_tree_object_for_node(tree,
                                       lxb_dom_interface_node(&empty_text))
               == NULL,
