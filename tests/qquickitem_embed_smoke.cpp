@@ -130,8 +130,11 @@ int main(int argc, char **argv)
 
     layout_result_t *result = layout_result_create(layout);
     layout_object_t *root = layout_object_create_anonymous(layout, host_style);
-    layout_object_t *host = layout_object_create_for_node(
-        layout, lxb_dom_interface_node(host_element));
+    layout_object_t *host = nullptr;
+    check(layout_dom_node_ensure_layout_object(
+              layout, lxb_dom_interface_node(host_element), &host)
+              == LXB_STATUS_OK,
+          "host layout object ensures from html element");
     layout_fragment_t *root_fragment = makeFragment(result, root, 320.0, 200.0);
     layout_fragment_t *host_fragment = makeFragment(result, host, 120.0, 44.0);
     layout_fragment_t *found_fragment = nullptr;

@@ -688,8 +688,10 @@ node_style_reference_smoke(layout_t *layout)
     element.node.type = LXB_DOM_NODE_TYPE_ELEMENT;
     element.computed_style = style;
 
-    object = layout_object_create_for_node(layout,
-                                           lxb_dom_interface_node(&element));
+    check(layout_dom_node_ensure_layout_object(
+              layout, lxb_dom_interface_node(&element), &object)
+              == LXB_STATUS_OK,
+          "layout object ensure for DOM node succeeds");
 
     check(object != NULL, "layout object binds DOM node computed style");
     check(layout_object_node(object) == lxb_dom_interface_node(&element),
@@ -779,13 +781,17 @@ layout_object_identity_smoke(layout_t *layout)
     check(style != NULL, "layout object id DOM style allocates");
     if (style != NULL) {
         init_element(&element, style);
-        dom_first = layout_object_create_for_node(
-            layout, lxb_dom_interface_node(&element));
+        check(layout_dom_node_ensure_layout_object(
+                  layout, lxb_dom_interface_node(&element), &dom_first)
+                  == LXB_STATUS_OK,
+              "DOM-backed first layout object ensures");
         dom_id = layout_object_id(dom_first);
         layout_clean(layout);
         element.computed_style = style;
-        dom_second = layout_object_create_for_node(
-            layout, lxb_dom_interface_node(&element));
+        check(layout_dom_node_ensure_layout_object(
+                  layout, lxb_dom_interface_node(&element), &dom_second)
+                  == LXB_STATUS_OK,
+              "DOM-backed second layout object ensures");
         check(dom_first != NULL && dom_second != NULL,
               "DOM-backed layout objects allocate across clean");
         check(dom_id != 0 && layout_object_id(dom_second) == dom_id,

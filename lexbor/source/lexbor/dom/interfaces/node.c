@@ -156,6 +156,7 @@ lxb_dom_node_interface_copy(lxb_dom_node_t *dst,
 
     dst->type = src->type;
     dst->user = src->user;
+    dst->layout_object = NULL;
 
     if (dst->owner_document == src->owner_document) {
         dst->local_name = src->local_name;
