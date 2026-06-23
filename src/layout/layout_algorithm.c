@@ -1,3 +1,4 @@
+#include "layout/layout_internal.h"
 #include "layout/layout_algorithm.h"
 
 #include <string.h>

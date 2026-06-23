@@ -862,6 +862,10 @@ layout_tree_builder_smoke(layout_t *layout)
     lxb_style_computed_t *inline_child_style = make_style();
     lxb_style_computed_t *transparent_root_style = make_style();
     lxb_style_computed_t *transparent_child_style = make_style();
+    lxb_style_computed_t *rebuild_root_style = make_style();
+    lxb_style_computed_t *rebuild_parent_style = make_style();
+    lxb_style_computed_t *rebuild_parent_contents_style = make_style();
+    lxb_style_computed_t *rebuild_child_style = make_style();
     lxb_dom_element_t root;
     lxb_dom_element_t first;
     lxb_dom_element_t contents;
@@ -873,6 +877,9 @@ layout_tree_builder_smoke(layout_t *layout)
     lxb_dom_element_t inline_child;
     lxb_dom_element_t transparent_root;
     lxb_dom_element_t transparent_child;
+    lxb_dom_element_t rebuild_root;
+    lxb_dom_element_t rebuild_parent;
+    lxb_dom_element_t rebuild_child;
     layout_tree_t *tree = NULL;
     layout_object_t *root_object;
     layout_object_t *first_object;
@@ -890,13 +897,20 @@ layout_tree_builder_smoke(layout_t *layout)
               && hidden_child_style != NULL && positioned_style != NULL
               && inline_style != NULL && inline_child_style != NULL
               && transparent_root_style != NULL
-              && transparent_child_style != NULL,
+              && transparent_child_style != NULL
+              && rebuild_root_style != NULL
+              && rebuild_parent_style != NULL
+              && rebuild_parent_contents_style != NULL
+              && rebuild_child_style != NULL,
           "layout tree smoke styles allocate");
     if (root_style == NULL || first_style == NULL || contents_style == NULL
         || flattened_style == NULL || none_style == NULL
         || hidden_child_style == NULL || positioned_style == NULL
         || inline_style == NULL || inline_child_style == NULL
-        || transparent_root_style == NULL || transparent_child_style == NULL) {
+        || transparent_root_style == NULL || transparent_child_style == NULL
+        || rebuild_root_style == NULL || rebuild_parent_style == NULL
+        || rebuild_parent_contents_style == NULL
+        || rebuild_child_style == NULL) {
         goto done;
     }
 
@@ -908,6 +922,14 @@ layout_tree_builder_smoke(layout_t *layout)
                       LXB_CSS_DISPLAY_BLOCK, LXB_CSS_DISPLAY_FLOW);
     set_style_display(transparent_root_style, LXB_CSS_DISPLAY_CONTENTS,
                       LXB_CSS_DISPLAY_INLINE, LXB_CSS_DISPLAY_FLOW);
+    set_style_display(rebuild_root_style, LXB_CSS_PROPERTY__UNDEF,
+                      LXB_CSS_DISPLAY_BLOCK, LXB_CSS_DISPLAY_FLOW);
+    set_style_display(rebuild_parent_style, LXB_CSS_PROPERTY__UNDEF,
+                      LXB_CSS_DISPLAY_BLOCK, LXB_CSS_DISPLAY_FLOW);
+    set_style_display(rebuild_parent_contents_style, LXB_CSS_DISPLAY_CONTENTS,
+                      LXB_CSS_DISPLAY_INLINE, LXB_CSS_DISPLAY_FLOW);
+    set_style_display(rebuild_child_style, LXB_CSS_PROPERTY__UNDEF,
+                      LXB_CSS_DISPLAY_BLOCK, LXB_CSS_DISPLAY_FLOW);
     set_style_display(inline_style, LXB_CSS_PROPERTY__UNDEF,
                       LXB_CSS_DISPLAY_INLINE, LXB_CSS_DISPLAY_FLOW);
     set_style_display(inline_child_style, LXB_CSS_PROPERTY__UNDEF,
@@ -929,6 +951,9 @@ layout_tree_builder_smoke(layout_t *layout)
     init_element(&inline_child, inline_child_style);
     init_element(&transparent_root, transparent_root_style);
     init_element(&transparent_child, transparent_child_style);
+    init_element(&rebuild_root, rebuild_root_style);
+    init_element(&rebuild_parent, rebuild_parent_style);
+    init_element(&rebuild_child, rebuild_child_style);
 
     append_dom_child(lxb_dom_interface_node(&root),
                      lxb_dom_interface_node(&first));
@@ -1126,6 +1151,30 @@ layout_tree_builder_smoke(layout_t *layout)
               tree, lxb_dom_interface_node(&transparent_root)) == NULL,
           "display:contents root does not create a layout object");
 
+    layout_tree_clean(tree);
+    append_dom_child(lxb_dom_interface_node(&rebuild_root),
+                     lxb_dom_interface_node(&rebuild_parent));
+    append_dom_child(lxb_dom_interface_node(&rebuild_parent),
+                     lxb_dom_interface_node(&rebuild_child));
+    check(layout_tree_build(tree, lxb_dom_interface_node(&rebuild_root))
+              == LXB_STATUS_OK,
+          "layout tree rebuild baseline builds");
+    check(layout_tree_object_for_node(
+              tree, lxb_dom_interface_node(&rebuild_parent)) != NULL,
+          "layout tree rebuild baseline creates parent object");
+    rebuild_parent.computed_style = rebuild_parent_contents_style;
+    layout_tree_clean(tree);
+    check(layout_tree_build(tree, lxb_dom_interface_node(&rebuild_root))
+              == LXB_STATUS_OK,
+          "layout tree rebuild with display:contents parent builds");
+    check(layout_tree_object_for_node(
+              tree, lxb_dom_interface_node(&rebuild_parent)) == NULL,
+          "layout traversal clears stale display:contents parent object");
+    check(layout_object_parent(layout_tree_object_for_node(
+              tree, lxb_dom_interface_node(&rebuild_child)))
+              == layout_tree_root_object(tree),
+          "layout traversal flattens rebuilt display:contents child");
+
 done:
     layout_tree_destroy(tree, true);
 
@@ -1161,6 +1210,18 @@ done:
     }
     if (transparent_child_style != NULL) {
         lxb_style_computed_unref(transparent_child_style);
+    }
+    if (rebuild_root_style != NULL) {
+        lxb_style_computed_unref(rebuild_root_style);
+    }
+    if (rebuild_parent_style != NULL) {
+        lxb_style_computed_unref(rebuild_parent_style);
+    }
+    if (rebuild_parent_contents_style != NULL) {
+        lxb_style_computed_unref(rebuild_parent_contents_style);
+    }
+    if (rebuild_child_style != NULL) {
+        lxb_style_computed_unref(rebuild_child_style);
     }
 }
 

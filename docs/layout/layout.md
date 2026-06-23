@@ -19,11 +19,6 @@ layout_dom_node_layout_object(lxb_dom_node_t *node);
 layout_dom_node_attach_layout_tree(layout_tree_t* tree, lxb_dom_node_t* node,
 layout_object_t* parent);
 
-static lxb_status_t
-layout_tree_attach_dom_node(layout_tree_t* tree, lxb_dom_node_t* dom_node,
-                            layout_tree_node_t* parent,
-                            bool reject_existing_record)
-
 void
 layout_dom_node_detach_layout_tree(lxb_dom_node_t *node);
 
