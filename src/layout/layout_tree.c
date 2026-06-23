@@ -181,15 +181,28 @@ layout_tree_build(layout_tree_t* tree, lxb_dom_node_t* root_node) {
     return LXB_STATUS_ERROR_OBJECT_IS_NULL;
   }
 
+  if (tree->layout == NULL || tree->layout->lifecycle_postponed) {
+    return LXB_STATUS_ERROR_WRONG_STAGE;
+  }
+
+  status = layout_lifecycle_advance_to(tree->layout,
+                                       LAYOUT_LIFECYCLE_IN_STYLE_RECALC);
+  if (status != LXB_STATUS_OK) {
+    return status;
+  }
+
   layout_tree_clean(tree);
   layout_tree_detach_skipped_subtree(root_node);
 
   status = layout_tree_builder_attach_subtree(tree, root_node, NULL, false);
   if (status != LXB_STATUS_OK) {
     layout_tree_clean(tree);
+    layout_lifecycle_abort_update(tree->layout);
+    return status;
   }
 
-  return status;
+  return layout_lifecycle_advance_to(tree->layout,
+                                     LAYOUT_LIFECYCLE_STYLE_CLEAN);
 }
 
 layout_object_t*
@@ -201,39 +214,76 @@ lxb_status_t
 layout_dom_node_attach_layout_tree(layout_tree_t* tree, lxb_dom_node_t* node,
                                    layout_object_t* parent) {
   layout_tree_node_t* parent_node = NULL;
+  lxb_status_t status;
 
   if (tree == NULL || node == NULL) {
     return LXB_STATUS_ERROR_OBJECT_IS_NULL;
   }
 
+  if (tree->layout == NULL || tree->layout->lifecycle_postponed) {
+    return LXB_STATUS_ERROR_WRONG_STAGE;
+  }
+
+  status = layout_lifecycle_advance_to(tree->layout,
+                                       LAYOUT_LIFECYCLE_IN_STYLE_RECALC);
+  if (status != LXB_STATUS_OK) {
+    return status;
+  }
+
   if (parent != NULL) {
     parent_node = layout_tree_node_for_object(tree, parent);
     if (parent_node == NULL) {
+      layout_lifecycle_abort_update(tree->layout);
       return LXB_STATUS_ERROR_NOT_EXISTS;
     }
     if (parent_node->block == NULL) {
+      layout_lifecycle_abort_update(tree->layout);
       return LXB_STATUS_ERROR_WRONG_ARGS;
     }
   }
 
-  return layout_tree_builder_attach_subtree(tree, node, parent_node, true);
+  status = layout_tree_builder_attach_subtree(tree, node, parent_node, true);
+  if (status != LXB_STATUS_OK) {
+    layout_lifecycle_abort_update(tree->layout);
+    return status;
+  }
+
+  return layout_lifecycle_advance_to(tree->layout,
+                                     LAYOUT_LIFECYCLE_STYLE_CLEAN);
 }
 
 void layout_dom_node_detach_layout_tree(lxb_dom_node_t* node) {
   layout_object_t* object;
+  layout_t* layout = NULL;
+  bool scoped_detach = false;
 
   if (node == NULL) {
     return;
   }
 
   object = (layout_object_t*)node->layout_object;
+  if (object != NULL) {
+    layout = object->layout;
+    if (layout != NULL && !layout_lifecycle_allows_layout_tree_mutations(layout)) {
+      if (layout_lifecycle_begin_detach(layout) != LXB_STATUS_OK) {
+        return;
+      }
+      scoped_detach = true;
+    }
+  }
+
   node->layout_object = NULL;
 
   if (object == NULL || layout_object_is_anonymous(object)) {
+    if (scoped_detach) {
+      layout_lifecycle_end_detach(layout);
+      layout_lifecycle_mark_update_pending(layout);
+    }
     return;
   }
 
   layout_object_unlink_from_siblings(object);
+  layout_object_detach_box(object);
   object->parent = NULL;
   object->native_embed_token = 0;
   object->dirty_bits = LAYOUT_DIRTY_NONE;
@@ -245,6 +295,11 @@ void layout_dom_node_detach_layout_tree(lxb_dom_node_t* node) {
   }
 
   object->node = NULL;
+
+  if (scoped_detach) {
+    layout_lifecycle_end_detach(layout);
+    layout_lifecycle_mark_update_pending(layout);
+  }
 }
 
 void layout_dom_node_detach_layout_subtree(lxb_dom_node_t* root_node) {

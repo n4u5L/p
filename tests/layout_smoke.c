@@ -153,6 +153,25 @@ set_visibility(layout_object_t *object, lxb_css_visibility_type_t visibility)
 }
 
 static void
+set_style_visibility(lxb_style_computed_t *style,
+                     lxb_css_visibility_type_t visibility)
+{
+    lxb_style_computed_inherited_t *inherited;
+
+    if (style == NULL) {
+        check(0, "visibility style exists");
+        return;
+    }
+
+    inherited = lxb_style_computed_inherited_mutable(style);
+
+    check(inherited != NULL, "style inherited group is mutable");
+    if (inherited != NULL) {
+        inherited->visibility = visibility;
+    }
+}
+
+static void
 set_z_index(layout_object_t *object, int z_index)
 {
     lxb_style_computed_t *style =
@@ -592,6 +611,29 @@ append_dom_child(lxb_dom_node_t *parent, lxb_dom_node_t *child)
     parent->last_child = child;
 }
 
+static void
+insert_dom_child_before(lxb_dom_node_t *parent, lxb_dom_node_t *child,
+                        lxb_dom_node_t *before)
+{
+    child->parent = parent;
+    child->prev = before == NULL ? parent->last_child : before->prev;
+    child->next = before;
+
+    if (child->prev != NULL) {
+        child->prev->next = child;
+    }
+    else {
+        parent->first_child = child;
+    }
+
+    if (before != NULL) {
+        before->prev = child;
+    }
+    else {
+        parent->last_child = child;
+    }
+}
+
 static layout_oof_positioned_t *
 find_oof_for_object(layout_result_t *result, layout_object_t *object)
 {
@@ -1005,6 +1047,12 @@ layout_tree_builder_smoke(layout_t *layout)
           "tree root references DOM computed style");
     check(layout_object_can_have_children(root_object),
           "tree root is created as block-capable layout object");
+    check(layout_object_is_box(root_object),
+          "block-capable tree root is a layout box");
+    check(layout_object_box(root_object) != NULL
+              && layout_box_object(layout_object_box(root_object))
+                     == root_object,
+          "layout object exposes its box extension");
     check(layout_object_can_contain_absolute_position(root_object)
               && layout_object_can_contain_fixed_position(root_object),
           "tree root initializes viewport containing block bits");
@@ -1025,6 +1073,10 @@ layout_tree_builder_smoke(layout_t *layout)
           "display:none subtree is skipped");
 
     check(root_children != NULL, "root object has external child list record");
+    check(first_object != NULL && layout_object_is_box(first_object),
+          "block-capable child is a layout box");
+    check(inline_object != NULL && !layout_object_is_box(inline_object),
+          "non-block inline object is not a layout box");
     check(layout_object_slow_first_child(root_children) == first_object,
           "first DOM child is first layout child");
     check(layout_object_next_sibling(first_object) == flattened_object,
@@ -1230,12 +1282,14 @@ layout_dom_node_attach_layout_tree_smoke(layout_t *layout)
 {
     lxb_style_computed_t *root_style = make_style();
     lxb_style_computed_t *first_style = make_style();
+    lxb_style_computed_t *middle_style = make_style();
     lxb_style_computed_t *contents_style = make_style();
     lxb_style_computed_t *flattened_style = make_style();
     lxb_style_computed_t *none_style = make_style();
     lxb_style_computed_t *hidden_child_style = make_style();
     lxb_dom_element_t root;
     lxb_dom_element_t first;
+    lxb_dom_element_t middle;
     lxb_dom_element_t contents;
     lxb_dom_element_t flattened;
     lxb_dom_element_t none;
@@ -1246,6 +1300,7 @@ layout_dom_node_attach_layout_tree_smoke(layout_t *layout)
     layout_tree_t *tree = NULL;
     layout_object_t *root_object;
     layout_object_t *first_object;
+    layout_object_t *middle_object;
     layout_object_t *flattened_object;
     layout_object_t *text_object;
     layout_object_t *text_parent;
@@ -1255,13 +1310,13 @@ layout_dom_node_attach_layout_tree_smoke(layout_t *layout)
     layout_object_child_list_t *text_children;
     layout_object_child_list_t *flattened_text_children;
 
-    check(root_style != NULL && first_style != NULL && contents_style != NULL
-              && flattened_style != NULL && none_style != NULL
-              && hidden_child_style != NULL,
+    check(root_style != NULL && first_style != NULL && middle_style != NULL
+              && contents_style != NULL && flattened_style != NULL
+              && none_style != NULL && hidden_child_style != NULL,
           "layout DOM attach styles allocate");
-    if (root_style == NULL || first_style == NULL || contents_style == NULL
-        || flattened_style == NULL || none_style == NULL
-        || hidden_child_style == NULL) {
+    if (root_style == NULL || first_style == NULL || middle_style == NULL
+        || contents_style == NULL || flattened_style == NULL
+        || none_style == NULL || hidden_child_style == NULL) {
         goto done;
     }
 
@@ -1269,8 +1324,11 @@ layout_dom_node_attach_layout_tree_smoke(layout_t *layout)
                       LXB_CSS_DISPLAY_BLOCK, LXB_CSS_DISPLAY_FLOW);
     set_style_display(first_style, LXB_CSS_PROPERTY__UNDEF,
                       LXB_CSS_DISPLAY_BLOCK, LXB_CSS_DISPLAY_FLOW);
+    set_style_display(middle_style, LXB_CSS_PROPERTY__UNDEF,
+                      LXB_CSS_DISPLAY_BLOCK, LXB_CSS_DISPLAY_FLOW);
     set_style_display(contents_style, LXB_CSS_DISPLAY_CONTENTS,
                       LXB_CSS_DISPLAY_INLINE, LXB_CSS_DISPLAY_FLOW);
+    set_style_visibility(contents_style, LXB_CSS_VISIBILITY_HIDDEN);
     set_style_display(flattened_style, LXB_CSS_PROPERTY__UNDEF,
                       LXB_CSS_DISPLAY_BLOCK, LXB_CSS_DISPLAY_FLOW);
     set_style_display(none_style, LXB_CSS_DISPLAY_NONE,
@@ -1280,6 +1338,7 @@ layout_dom_node_attach_layout_tree_smoke(layout_t *layout)
 
     init_element(&root, root_style);
     init_element(&first, first_style);
+    init_element(&middle, middle_style);
     init_element(&contents, contents_style);
     init_element(&flattened, flattened_style);
     init_element(&none, none_style);
@@ -1340,6 +1399,24 @@ layout_dom_node_attach_layout_tree_smoke(layout_t *layout)
     check(layout_object_style(text_object) == root_style,
           "layout DOM attach text object references parent style");
 
+    insert_dom_child_before(lxb_dom_interface_node(&root),
+                            lxb_dom_interface_node(&middle),
+                            lxb_dom_interface_node(&text));
+    check(layout_dom_node_attach_layout_tree(
+              tree, lxb_dom_interface_node(&middle), root_object)
+              == LXB_STATUS_OK,
+          "layout DOM attach inserts middle subtree");
+    middle_object =
+        layout_tree_object_for_node(tree, lxb_dom_interface_node(&middle));
+    root_children = layout_tree_children(tree, root_object);
+    check(middle_object != NULL
+               && layout_object_parent(middle_object) == root_object,
+          "layout DOM attach maps middle inserted child");
+    check(layout_object_next_sibling(first_object) == middle_object
+               && layout_object_next_sibling(middle_object) == text_parent
+               && layout_object_previous_sibling(text_parent) == middle_object,
+          "layout DOM attach inserts before next layout object");
+
     append_dom_child(lxb_dom_interface_node(&root),
                      lxb_dom_interface_node(&contents));
     check(layout_dom_node_attach_layout_tree(
@@ -1366,7 +1443,7 @@ layout_dom_node_attach_layout_tree_smoke(layout_t *layout)
            "layout DOM attach appends flattened child after existing siblings");
     check(layout_object_next_sibling(flattened_object)
                == flattened_text_parent,
-           "layout DOM attach creates flattened text sibling");
+            "layout DOM attach creates flattened text sibling");
     check(flattened_text_object != NULL
                && flattened_text_parent != NULL
                && flattened_text_parent != root_object
@@ -1376,9 +1453,20 @@ layout_dom_node_attach_layout_tree_smoke(layout_t *layout)
                && layout_object_slow_first_child(flattened_text_children)
                       == flattened_text_object
                && layout_object_slow_last_child(flattened_text_children)
-                      == flattened_text_object
-               && layout_object_style(flattened_text_object) == root_style,
-           "layout DOM attach flattened text uses nearest layout parent style");
+                      == flattened_text_object,
+           "layout DOM attach flattened text uses anonymous wrapper");
+    check(layout_object_style(flattened_text_object) != NULL
+               && layout_object_style(flattened_text_object) != contents_style
+               && layout_object_style(flattened_text_object)->inherited
+                      == contents_style->inherited
+               && layout_object_style(flattened_text_object)->non_inherited
+                      == root_style->non_inherited
+               && layout_object_style(flattened_text_object)->inherited->visibility
+                      == LXB_CSS_VISIBILITY_HIDDEN,
+           "display:contents text style inherits through transparent parent");
+    check(layout_object_style(flattened_text_parent) ==
+              layout_object_style(flattened_text_object),
+          "display:contents text anonymous block shares adjusted style");
     check(layout_object_slow_last_child(root_children) == flattened_text_parent,
            "layout DOM attach updates root child-list tail");
     check(layout_tree_object_for_node(tree,
@@ -1401,6 +1489,9 @@ done:
     }
     if (first_style != NULL) {
         lxb_style_computed_unref(first_style);
+    }
+    if (middle_style != NULL) {
+        lxb_style_computed_unref(middle_style);
     }
     if (contents_style != NULL) {
         lxb_style_computed_unref(contents_style);
@@ -5501,14 +5592,17 @@ layout_scene_plan_build_smoke(layout_t *layout, layout_result_t *result)
                                     LAYOUT_FRAGMENT_BOX_OUT_OF_FLOW_POSITIONED);
     layout_fragment_init_t transformed_init;
     layout_scene_plan_t *plan = NULL;
+    layout_scene_diff_t *diff = NULL;
     const layout_scene_node_t *root_node;
     const layout_scene_node_t *transformed_node;
     const layout_scene_node_t *clipped_node;
     const layout_scene_node_t *embed_node;
     const layout_scene_node_t *oof_node;
+    layout_fragment_key_t transformed_key;
     layout_point_t offset;
     layout_rect_t rect;
     unsigned hints;
+    uint64_t plan_generation;
 
     memset(&transformed_init, 0, sizeof(transformed_init));
     transformed_init.object = transformed;
@@ -5637,6 +5731,34 @@ layout_scene_plan_build_smoke(layout_t *layout, layout_result_t *result)
               && layout_scene_node_sequence(oof_node) == 0,
           "scene plan attaches OOF fragment under containing fragment");
 
+    plan_generation = layout_scene_plan_generation(plan);
+    transformed_key = layout_scene_node_key(transformed_node);
+    diff = layout_scene_diff_create();
+    check(diff != NULL, "scene plan snapshot diff allocates");
+
+    layout_result_clean(result);
+    check(layout_scene_plan_generation(plan) == plan_generation,
+          "scene plan keeps generation after result arena clean");
+    transformed_node = layout_scene_plan_node_at(plan, 3);
+    offset = layout_scene_node_offset(transformed_node);
+    rect = layout_scene_node_local_rect(transformed_node);
+    check(fragment_key_equal(layout_scene_node_key(transformed_node),
+                             transformed_key)
+              && offset.x == 10.0 && offset.y == 12.0
+              && rect.width == 50.0 && rect.height == 40.0,
+          "scene plan node snapshot survives result arena clean");
+    if (diff != NULL) {
+        check(layout_scene_plan_diff(NULL, plan, diff) == LXB_STATUS_OK,
+              "scene plan diff consumes snapshot after result clean");
+        check(layout_scene_diff_old_generation(diff) == 0
+                  && layout_scene_diff_new_generation(diff)
+                         == plan_generation
+                  && layout_scene_diff_patch_count(diff)
+                         == layout_scene_plan_node_count(plan),
+              "scene plan snapshot diff emits insert patches after result clean");
+    }
+
+    layout_scene_diff_destroy(diff, true);
     layout_scene_plan_destroy(plan, true);
 }
 
@@ -6449,11 +6571,232 @@ layout_result_boundary_smoke(layout_t *layout, layout_result_t *result)
 }
 
 static void
+layout_box_result_cache_smoke(layout_t *layout)
+{
+    lxb_style_computed_t *root_style = make_style();
+    lxb_dom_element_t root;
+    layout_tree_t *tree = NULL;
+    layout_object_t *root_object;
+    layout_box_t *box;
+    layout_result_t *result = NULL;
+    layout_fragment_t *root_fragment;
+
+    check(root_style != NULL, "layout box smoke style allocates");
+    if (root_style == NULL) {
+        return;
+    }
+
+    set_style_display(root_style, LXB_CSS_PROPERTY__UNDEF,
+                      LXB_CSS_DISPLAY_BLOCK, LXB_CSS_DISPLAY_FLOW);
+    init_element(&root, root_style);
+
+    tree = layout_tree_create(layout);
+    check(tree != NULL, "layout box smoke tree allocates");
+    if (tree == NULL) {
+        goto done;
+    }
+
+    check(layout_tree_build(tree, lxb_dom_interface_node(&root))
+              == LXB_STATUS_OK,
+          "layout box smoke tree builds");
+    root_object = layout_tree_root_object(tree);
+    box = layout_object_box(root_object);
+    check(root_object != NULL && box != NULL,
+          "block-capable object owns a layout box");
+    check(layout_box_object(box) == root_object,
+          "layout box points back to its object");
+
+    result = layout_result_create(layout);
+    check(result != NULL, "layout box smoke result allocates");
+    if (result == NULL || box == NULL) {
+        goto done;
+    }
+
+    root_fragment = make_fragment(result, root_object, 40.0, 30.0);
+    check(root_fragment != NULL, "layout box smoke fragment allocates");
+    check(layout_result_set_root_fragment(result, root_fragment)
+              == LXB_STATUS_OK,
+          "layout box smoke stores root fragment");
+    freeze_result(result);
+
+    check(layout_box_set_layout_result(box, result, 1)
+              == LXB_STATUS_ERROR_WRONG_ARGS,
+          "layout box rejects sparse layout result cache insert");
+    check(layout_box_set_layout_result(box, result, 0) == LXB_STATUS_OK,
+          "layout box stores frozen layout result");
+    check(layout_box_layout_result_count(box) == 1,
+          "layout box reports cached result count");
+    check(layout_box_layout_result_at(box, 0) == result,
+          "layout box returns cached layout result");
+    check(layout_box_physical_fragment_at(box, 0) == root_fragment,
+          "layout box exposes cached physical fragment root");
+
+    layout_result_destroy(result, true);
+    result = NULL;
+    check(layout_box_layout_result_count(box) == 1,
+          "layout box keeps result after caller releases reference");
+    check(layout_box_physical_fragment_at(box, 0) == root_fragment,
+          "cached physical fragment survives caller release");
+
+    layout_box_clear_layout_results(box);
+    check(layout_box_layout_result_count(box) == 0,
+          "layout box clears cached layout results");
+    check(layout_box_physical_fragment_at(box, 0) == NULL,
+          "layout box returns no fragment after cache clear");
+
+done:
+    if (result != NULL) {
+        layout_result_destroy(result, true);
+    }
+    layout_tree_destroy(tree, true);
+    lxb_style_computed_unref(root_style);
+}
+
+static void
 lifecycle_smoke(void)
 {
+    layout_t *layout = layout_create();
+    layout_object_t *object;
+    lxb_style_computed_t *style = NULL;
+    lxb_dom_element_t element;
+    layout_tree_t *tree = NULL;
+
+    check(layout != NULL, "lifecycle layout create returns object");
+    if (layout != NULL) {
+        check(layout_init(layout) == LXB_STATUS_OK,
+              "lifecycle layout init succeeds");
+        check(layout_lifecycle_state(layout) == LAYOUT_LIFECYCLE_INACTIVE,
+              "lifecycle starts inactive after init");
+        check(strcmp(layout_lifecycle_state_name(
+                         LAYOUT_LIFECYCLE_LAYOUT_CLEAN),
+                     "LAYOUT_CLEAN") == 0,
+              "lifecycle state exposes debug name");
+        check(!layout_lifecycle_is_active(layout),
+              "inactive lifecycle is not active");
+        check(layout_lifecycle_advance_to(
+                  layout, LAYOUT_LIFECYCLE_IN_LAYOUT)
+                  == LXB_STATUS_ERROR_WRONG_STAGE,
+              "lifecycle rejects skipping style recalc");
+        check(layout_lifecycle_advance_to(
+                  layout, LAYOUT_LIFECYCLE_IN_STYLE_RECALC)
+                  == LXB_STATUS_OK,
+              "lifecycle enters style recalc");
+        check(layout_lifecycle_is_active(layout),
+              "style recalc lifecycle is active");
+        check(!layout_lifecycle_allows_tree_mutations(layout),
+              "style recalc blocks ordinary tree mutations");
+        check(layout_lifecycle_allows_layout_tree_mutations(layout),
+              "style recalc allows layout tree attach/detach");
+        check(layout_lifecycle_advance_to(
+                  layout, LAYOUT_LIFECYCLE_STYLE_CLEAN)
+                  == LXB_STATUS_OK,
+              "lifecycle reaches style clean");
+        check(layout_lifecycle_advance_to(
+                  layout, LAYOUT_LIFECYCLE_IN_LAYOUT)
+                  == LXB_STATUS_OK,
+              "lifecycle enters layout");
+        check(!layout_lifecycle_allows_detach(layout),
+              "layout phase rejects detach");
+        check(layout_lifecycle_begin_detach(layout)
+                  == LXB_STATUS_ERROR_WRONG_STAGE,
+              "detach scope cannot start during layout");
+        check(layout_lifecycle_advance_to(
+                  layout, LAYOUT_LIFECYCLE_LAYOUT_CLEAN)
+                  == LXB_STATUS_OK,
+              "lifecycle reaches layout clean");
+        check(layout_lifecycle_begin_disallow_transition(layout)
+                  == LXB_STATUS_OK,
+              "lifecycle transition guard starts");
+        check(layout_lifecycle_advance_to(
+                  layout, LAYOUT_LIFECYCLE_IN_SCENE_PLAN)
+                  == LXB_STATUS_ERROR_WRONG_STAGE,
+              "transition guard blocks advance");
+        check(layout_lifecycle_end_disallow_transition(layout)
+                  == LXB_STATUS_OK,
+              "lifecycle transition guard ends");
+        check(layout_lifecycle_advance_to(
+                  layout, LAYOUT_LIFECYCLE_IN_SCENE_PLAN)
+                  == LXB_STATUS_OK,
+              "lifecycle enters scene plan build");
+        check(layout_lifecycle_advance_to(
+                  layout, LAYOUT_LIFECYCLE_SCENE_PLAN_CLEAN)
+                  == LXB_STATUS_OK,
+              "lifecycle reaches scene plan clean");
+        check(layout_lifecycle_begin_detach(layout) == LXB_STATUS_OK,
+              "detach scope starts from clean state");
+        check(layout_lifecycle_in_detach(layout),
+              "lifecycle reports detach scope");
+        check(layout_lifecycle_allows_layout_tree_mutations(layout),
+              "detach scope allows layout tree mutation");
+        check(layout_lifecycle_end_detach(layout) == LXB_STATUS_OK,
+              "detach scope ends");
+        check(layout_lifecycle_end_detach(layout)
+                  == LXB_STATUS_ERROR_WRONG_STAGE,
+              "detach scope cannot underflow");
+
+        object = make_object(layout);
+        check(object != NULL, "lifecycle dirty object allocates");
+        if (object != NULL) {
+            layout_object_set_self_needs_full_layout(object, true);
+            check(layout_lifecycle_state(layout)
+                      == LAYOUT_LIFECYCLE_UPDATE_PENDING,
+                  "layout dirty rewinds lifecycle to update pending");
+            layout_object_clear_needs_layout(object);
+        }
+
+        check(layout_lifecycle_advance_to(
+                  layout, LAYOUT_LIFECYCLE_STOPPING)
+                  == LXB_STATUS_OK,
+              "lifecycle enters stopping");
+        check(layout_lifecycle_advance_to(
+                  layout, LAYOUT_LIFECYCLE_STOPPED)
+                  == LXB_STATUS_OK,
+              "lifecycle enters stopped");
+        check(layout_lifecycle_advance_to(
+                  layout, LAYOUT_LIFECYCLE_IN_STYLE_RECALC)
+                  == LXB_STATUS_ERROR_WRONG_STAGE,
+              "stopped lifecycle cannot restart");
+        layout_destroy(layout, true);
+    }
+
+    layout = layout_create();
+    check(layout != NULL, "postponed lifecycle layout create returns object");
+    if (layout != NULL) {
+        check(layout_init(layout) == LXB_STATUS_OK,
+              "postponed lifecycle layout init succeeds");
+        style = make_style();
+        check(style != NULL, "postponed lifecycle style allocates");
+        if (style != NULL) {
+            init_element(&element, style);
+            tree = layout_tree_create(layout);
+            check(tree != NULL, "postponed lifecycle tree allocates");
+            if (tree != NULL) {
+                layout_lifecycle_set_postponed(layout, true);
+                check(layout_lifecycle_is_postponed(layout),
+                      "lifecycle reports postponed state");
+                check(layout_dom_node_attach_layout_tree(
+                          tree, lxb_dom_interface_node(&element), NULL)
+                          == LXB_STATUS_ERROR_WRONG_STAGE,
+                      "postponed lifecycle blocks layout tree attach");
+                layout_lifecycle_set_postponed(layout, false);
+                check(layout_dom_node_attach_layout_tree(
+                          tree, lxb_dom_interface_node(&element), NULL)
+                          == LXB_STATUS_OK,
+                      "resumed lifecycle allows layout tree attach");
+                check(layout_lifecycle_state(layout)
+                          == LAYOUT_LIFECYCLE_STYLE_CLEAN,
+                      "layout tree attach leaves lifecycle style clean");
+                layout_tree_destroy(tree, true);
+                tree = NULL;
+            }
+            lxb_style_computed_unref(style);
+            style = NULL;
+        }
+        layout_destroy(layout, true);
+    }
+
     for (int i = 0; i < 32; i++) {
-        layout_t *layout = layout_create();
-        layout_object_t *object;
+        layout = layout_create();
         layout_result_t *result;
         layout_fragment_t *fragment;
 
@@ -6583,6 +6926,7 @@ main(void)
     run_layout_result_smoke(overflow_clip_smoke);
     run_layout_result_smoke(transform_smoke);
     run_layout_result_smoke(layout_result_boundary_smoke);
+    run_layout_smoke(layout_box_result_cache_smoke);
     lifecycle_smoke();
 
     if (failed) {

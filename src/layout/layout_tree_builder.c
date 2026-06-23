@@ -23,6 +23,7 @@ typedef struct layout_tree_builder_decision {
   const lxb_style_computed_t* style;
   unsigned internal_bits;
   bool can_have_children;
+  bool owns_style;
 } layout_tree_builder_decision_t;
 
 typedef struct layout_tree_attach_result {
@@ -94,9 +95,15 @@ layout_tree_builder_style_is_block_capable(
 
 static layout_block_t*
 layout_tree_builder_create_block(layout_t* layout, layout_object_t* object) {
+  layout_box_t* box;
   layout_block_t* block;
 
   if (layout == NULL || layout->blocks == NULL || object == NULL) {
+    return NULL;
+  }
+
+  box = layout_box_create(layout, object);
+  if (box == NULL) {
     return NULL;
   }
 
@@ -105,7 +112,7 @@ layout_tree_builder_create_block(layout_t* layout, layout_object_t* object) {
     return NULL;
   }
 
-  block->object = object;
+  block->box = box;
   object->bitfields |= LAYOUT_OBJECT_INTERNAL_BLOCK;
   layout_object_child_list_init(&block->children);
 
@@ -118,10 +125,146 @@ layout_tree_builder_object_is_anonymous_block(layout_object_t* object) {
       && (object->bitfields & LAYOUT_OBJECT_INTERNAL_ANONYMOUS_BLOCK) != 0;
 }
 
+static bool
+layout_tree_builder_object_is_descendant_of(layout_object_t* object,
+                                            layout_object_t* ancestor) {
+  for (layout_object_t* current = object; current != NULL;
+       current = current->parent) {
+    if (current == ancestor) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static void
+layout_tree_builder_decision_release(layout_tree_builder_decision_t* decision) {
+  if (decision == NULL || !decision->owns_style || decision->style == NULL) {
+    return;
+  }
+
+  lxb_style_computed_unref((lxb_style_computed_t*) decision->style);
+  decision->style = NULL;
+  decision->owns_style = false;
+}
+
+static lxb_status_t
+layout_tree_builder_text_style(lxb_dom_node_t* node,
+                               layout_tree_node_t* parent,
+                               const lxb_style_computed_t** out_style,
+                               bool* out_owns_style) {
+  lxb_dom_node_t* stop_node;
+  const lxb_style_computed_t* parent_style;
+
+  if (out_style == NULL || out_owns_style == NULL) {
+    return LXB_STATUS_ERROR_OBJECT_IS_NULL;
+  }
+
+  *out_style = NULL;
+  *out_owns_style = false;
+
+  if (node == NULL || parent == NULL || parent->object == NULL) {
+    return LXB_STATUS_ERROR_OBJECT_IS_NULL;
+  }
+
+  parent_style = parent->object->style;
+  stop_node = parent->node;
+  for (lxb_dom_node_t* ancestor = layout_tree_traversal_parent(node);
+       ancestor != NULL && ancestor != stop_node;
+       ancestor = layout_tree_traversal_parent(ancestor)) {
+    const lxb_style_computed_t* style;
+
+    if (!layout_tree_traversal_node_is_display_contents(ancestor)) {
+      continue;
+    }
+
+    style = layout_tree_builder_node_style(ancestor);
+    if (style != NULL) {
+      lxb_style_computed_t* wrapper_style =
+          lxb_style_computed_create_initial(parent_style, style);
+      if (wrapper_style == NULL) {
+        return LXB_STATUS_ERROR_MEMORY_ALLOCATION;
+      }
+
+      *out_style = wrapper_style;
+      *out_owns_style = true;
+      return LXB_STATUS_OK;
+    }
+  }
+
+  *out_style = parent_style;
+  return LXB_STATUS_OK;
+}
+
+static layout_object_t*
+layout_tree_builder_next_layout_object(layout_tree_t* tree,
+                                       lxb_dom_node_t* dom_node) {
+  if (tree == NULL || dom_node == NULL) {
+    return NULL;
+  }
+
+  for (lxb_dom_node_t* sibling =
+           layout_tree_traversal_next_layout_sibling(dom_node);
+       sibling != NULL;
+       sibling = layout_tree_traversal_next_layout_sibling(sibling)) {
+    layout_tree_node_t* sibling_node =
+        layout_tree_node_for_dom_node(tree, sibling);
+
+    if (sibling_node != NULL && sibling_node->object != NULL) {
+      return sibling_node->object;
+    }
+  }
+
+  return NULL;
+}
+
+static layout_tree_node_t*
+layout_tree_builder_anonymous_block_for_before(layout_tree_t* tree,
+                                               layout_tree_node_t* parent,
+                                               layout_object_t* before_child) {
+  if (tree == NULL || parent == NULL || parent->object == NULL
+      || before_child == NULL) {
+    return NULL;
+  }
+
+  for (layout_object_t* current = before_child; current != NULL;
+       current = current->parent) {
+    if (layout_tree_builder_object_is_anonymous_block(current)
+        && current->parent == parent->object) {
+      return layout_tree_node_for_object(tree, current);
+    }
+
+    if (current->parent == parent->object) {
+      return NULL;
+    }
+  }
+
+  return NULL;
+}
+
+static layout_object_t*
+layout_tree_builder_child_before(layout_tree_node_t* parent,
+                                 layout_object_t* before_child) {
+  layout_object_t* direct_child;
+
+  if (parent == NULL || parent->object == NULL || before_child == NULL) {
+    return NULL;
+  }
+
+  direct_child = before_child;
+  while (direct_child != NULL && direct_child->parent != parent->object) {
+    direct_child = direct_child->parent;
+  }
+
+  return direct_child == NULL ? NULL : direct_child->prev;
+}
+
 static layout_tree_node_t*
 layout_tree_builder_create_anonymous_block(layout_tree_t* tree,
                                            layout_tree_node_t* parent,
-                                           const lxb_style_computed_t* style) {
+                                           const lxb_style_computed_t* style,
+                                           layout_object_t* before_child) {
   layout_object_t* object;
   layout_block_t* block;
   layout_tree_node_t* node;
@@ -148,9 +291,10 @@ layout_tree_builder_create_anonymous_block(layout_tree_t* tree,
   }
   node->block = block;
 
-  if (layout_object_child_list_append(&parent->block->children,
-                                      parent->object,
-                                      object) != LXB_STATUS_OK) {
+  if (layout_object_child_list_insert_before(&parent->block->children,
+                                             parent->object,
+                                             object,
+                                             before_child) != LXB_STATUS_OK) {
     return NULL;
   }
 
@@ -161,8 +305,10 @@ static layout_tree_node_t*
 layout_tree_builder_add_child_to_block(layout_tree_t* tree,
                                        layout_tree_node_t* parent,
                                        layout_tree_node_t* child,
-                                       const lxb_style_computed_t* child_style) {
+                                       const lxb_style_computed_t* child_style,
+                                       layout_object_t* before_child) {
   layout_object_t* last_child;
+  layout_object_t* anonymous_before_child = NULL;
   layout_tree_node_t* anonymous;
 
   if (tree == NULL || parent == NULL || parent->block == NULL
@@ -171,30 +317,51 @@ layout_tree_builder_add_child_to_block(layout_tree_t* tree,
   }
 
   if (child->block != NULL) {
-    if (layout_object_child_list_append(&parent->block->children,
-                                        parent->object,
-                                        child->object) != LXB_STATUS_OK) {
+    if (layout_object_child_list_insert_before(&parent->block->children,
+                                               parent->object,
+                                               child->object,
+                                               before_child) != LXB_STATUS_OK) {
       return NULL;
     }
 
     return child;
   }
 
-  last_child = parent->block->children.last_child;
-  if (layout_tree_builder_object_is_anonymous_block(last_child)) {
-    anonymous = layout_tree_node_for_object(tree, last_child);
+  anonymous =
+      layout_tree_builder_anonymous_block_for_before(tree, parent, before_child);
+  if (anonymous != NULL) {
+    if (before_child == anonymous->object) {
+      anonymous_before_child = anonymous->block->children.first_child;
+    } else if (layout_tree_builder_object_is_descendant_of(
+                   before_child, anonymous->object)) {
+      anonymous_before_child = before_child;
+    }
   } else {
-    anonymous =
-        layout_tree_builder_create_anonymous_block(tree, parent, child_style);
+    last_child = before_child == NULL
+        ? parent->block->children.last_child
+        : layout_tree_builder_child_before(parent, before_child);
+    if (before_child == NULL
+        && layout_tree_builder_object_is_anonymous_block(last_child)) {
+      anonymous = layout_tree_node_for_object(tree, last_child);
+    } else if (before_child != NULL
+               && layout_tree_builder_object_is_anonymous_block(last_child)) {
+      anonymous = layout_tree_node_for_object(tree, last_child);
+    } else {
+      anonymous =
+          layout_tree_builder_create_anonymous_block(tree, parent, child_style,
+                                                     before_child);
+    }
   }
 
   if (anonymous == NULL || anonymous->block == NULL) {
     return NULL;
   }
 
-  if (layout_object_child_list_append(&anonymous->block->children,
-                                      anonymous->object,
-                                      child->object) != LXB_STATUS_OK) {
+  if (layout_object_child_list_insert_before(&anonymous->block->children,
+                                             anonymous->object,
+                                             child->object,
+                                             anonymous_before_child)
+      != LXB_STATUS_OK) {
     return NULL;
   }
 
@@ -228,7 +395,13 @@ layout_tree_builder_decide_node(layout_tree_node_t* parent,
       }
     }
   } else if (layout_tree_builder_text_object_is_needed(dom_node, parent)) {
-    decision.style = parent->object->style;
+    lxb_status_t status =
+        layout_tree_builder_text_style(dom_node, parent, &decision.style,
+                                       &decision.owns_style);
+    if (status != LXB_STATUS_OK) {
+      return status;
+    }
+
     decision.internal_bits = LAYOUT_OBJECT_INTERNAL_TEXT;
     decision.action = LAYOUT_TREE_BUILDER_ATTACH_OBJECT;
   }
@@ -266,6 +439,8 @@ layout_tree_builder_create_layout_node(
     if (block == NULL) {
       return LXB_STATUS_ERROR_MEMORY_ALLOCATION;
     }
+  } else {
+    layout_object_detach_box(object);
   }
 
   node = layout_tree_append_record(tree, dom_node, object);
@@ -310,14 +485,18 @@ layout_tree_builder_place_layout_node(
     layout_object_update_style_derived_bits(node->object);
   } else {
     layout_tree_node_t* layout_parent;
+    layout_object_t* next_layout_object;
 
     if (parent->block == NULL) {
       return LXB_STATUS_ERROR_WRONG_ARGS;
     }
 
+    next_layout_object =
+        layout_tree_builder_next_layout_object(tree, node->node);
     layout_parent =
         layout_tree_builder_add_child_to_block(tree, parent, node,
-                                               layout_object_style(node->object));
+                                               layout_object_style(node->object),
+                                               next_layout_object);
     if (layout_parent == NULL) {
       return LXB_STATUS_ERROR_MEMORY_ALLOCATION;
     }
@@ -374,12 +553,14 @@ layout_tree_builder_attach_current(
 
   if (context->reject_existing_record
       && layout_tree_node_for_dom_node(tree, dom_node) != NULL) {
+    layout_tree_builder_decision_release(&decision);
     return LXB_STATUS_ERROR_WRONG_ARGS;
   }
 
   is_tree_root = context->parent == NULL && tree->root_object == NULL;
   status = layout_tree_builder_create_layout_node(tree, dom_node, decision,
                                                   is_tree_root, &created);
+  layout_tree_builder_decision_release(&decision);
   if (status != LXB_STATUS_OK) {
     return status;
   }

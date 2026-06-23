@@ -18,6 +18,7 @@ typedef struct layout layout_t;
 typedef struct layout_result layout_result_t;
 typedef struct layout_tree layout_tree_t;
 typedef struct layout_object layout_object_t;
+typedef struct layout_box layout_box_t;
 typedef struct layout_fragment layout_fragment_t;
 typedef struct layout_fragment_link layout_fragment_link_t;
 typedef struct layout_fragment_data layout_fragment_data_t;
@@ -45,6 +46,20 @@ typedef enum {
   LAYOUT_DIRTY_CHILD_FULL = 1 << 1,
   LAYOUT_DIRTY_SIMPLIFIED = 1 << 2
 } layout_dirty_t;
+
+typedef enum {
+  LAYOUT_LIFECYCLE_UNINITIALIZED = 0,
+  LAYOUT_LIFECYCLE_INACTIVE,
+  LAYOUT_LIFECYCLE_UPDATE_PENDING,
+  LAYOUT_LIFECYCLE_IN_STYLE_RECALC,
+  LAYOUT_LIFECYCLE_STYLE_CLEAN,
+  LAYOUT_LIFECYCLE_IN_LAYOUT,
+  LAYOUT_LIFECYCLE_LAYOUT_CLEAN,
+  LAYOUT_LIFECYCLE_IN_SCENE_PLAN,
+  LAYOUT_LIFECYCLE_SCENE_PLAN_CLEAN,
+  LAYOUT_LIFECYCLE_STOPPING,
+  LAYOUT_LIFECYCLE_STOPPED
+} layout_lifecycle_state_t;
 
 typedef struct {
   double x;
@@ -251,6 +266,53 @@ layout_destroy(layout_t* layout, bool destroy_self);
 
 void layout_clean(layout_t* layout);
 
+layout_lifecycle_state_t
+layout_lifecycle_state(layout_t* layout);
+
+const char*
+layout_lifecycle_state_name(layout_lifecycle_state_t state);
+
+bool
+layout_lifecycle_is_active(layout_t* layout);
+
+bool
+layout_lifecycle_allows_tree_mutations(layout_t* layout);
+
+bool
+layout_lifecycle_allows_layout_tree_mutations(layout_t* layout);
+
+bool
+layout_lifecycle_allows_detach(layout_t* layout);
+
+bool
+layout_lifecycle_is_postponed(layout_t* layout);
+
+bool
+layout_lifecycle_in_detach(layout_t* layout);
+
+lxb_status_t
+layout_lifecycle_advance_to(layout_t* layout,
+                            layout_lifecycle_state_t state);
+
+lxb_status_t
+layout_lifecycle_ensure_state_at_most(layout_t* layout,
+                                      layout_lifecycle_state_t state);
+
+lxb_status_t
+layout_lifecycle_begin_detach(layout_t* layout);
+
+lxb_status_t
+layout_lifecycle_end_detach(layout_t* layout);
+
+lxb_status_t
+layout_lifecycle_begin_disallow_transition(layout_t* layout);
+
+lxb_status_t
+layout_lifecycle_end_disallow_transition(layout_t* layout);
+
+void
+layout_lifecycle_set_postponed(layout_t* layout, bool postponed);
+
 layout_tree_t*
 layout_tree_create(layout_t* layout);
 
@@ -318,6 +380,12 @@ layout_result_init(layout_result_t* result, layout_t* layout);
 
 layout_result_t*
 layout_result_destroy(layout_result_t* result, bool destroy_self);
+
+layout_result_t*
+layout_result_ref(layout_result_t* result);
+
+layout_result_t*
+layout_result_unref(layout_result_t* result);
 
 void layout_result_clean(layout_result_t* result);
 
@@ -420,6 +488,34 @@ uint64_t
 layout_object_id(layout_object_t* object);
 
 bool layout_object_is_anonymous(layout_object_t* object);
+
+bool layout_object_is_box(layout_object_t* object);
+
+layout_box_t*
+layout_object_box(layout_object_t* object);
+
+layout_object_t*
+layout_box_object(layout_box_t* box);
+
+lxb_status_t
+layout_box_set_layout_result(layout_box_t* box,
+                             layout_result_t* result,
+                             size_t index);
+
+lxb_status_t
+layout_box_append_layout_result(layout_box_t* box,
+                                layout_result_t* result);
+
+void layout_box_clear_layout_results(layout_box_t* box);
+
+size_t
+layout_box_layout_result_count(layout_box_t* box);
+
+layout_result_t*
+layout_box_layout_result_at(layout_box_t* box, size_t index);
+
+layout_fragment_t*
+layout_box_physical_fragment_at(layout_box_t* box, size_t index);
 
 bool layout_object_can_have_children(layout_object_t* object);
 

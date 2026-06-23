@@ -7,6 +7,7 @@
 #include "lexbor/core/mraw.h"
 
 #define LAYOUT_OBJECT_CHUNK 128
+#define LAYOUT_BOX_CHUNK 128
 #define LAYOUT_BLOCK_CHUNK 128
 #define LAYOUT_FRAGMENT_CHUNK 128
 #define LAYOUT_TREE_NODE_CHUNK 128
@@ -20,6 +21,7 @@
 #define LAYOUT_OBJECT_INTERNAL_BLOCK (1u << 29)
 #define LAYOUT_OBJECT_INTERNAL_ANONYMOUS_BLOCK (1u << 28)
 #define LAYOUT_OBJECT_INTERNAL_TEXT (1u << 27)
+#define LAYOUT_OBJECT_INTERNAL_BOX (1u << 26)
 #define LAYOUT_IDENTITY_SALT 0x9e3779b97f4a7c15ull
 #define LAYOUT_ANONYMOUS_IDENTITY_SALT 0xbf58476d1ce4e5b9ull
 #define LAYOUT_GENERATION_SALT 0x94d049bb133111ebull
@@ -31,10 +33,15 @@ typedef struct layout_fragment_index_counter {
 
 struct layout {
   lexbor_dobject_t* objects;
+  lexbor_dobject_t* boxes;
   lexbor_dobject_t* blocks;
   uint64_t identity_salt;
   uint64_t anonymous_identity_salt;
   uint64_t generation_salt;
+  layout_lifecycle_state_t lifecycle_state;
+  unsigned detach_count;
+  unsigned disallow_transition_count;
+  bool lifecycle_postponed;
 };
 
 struct layout_result {
@@ -49,11 +56,21 @@ struct layout_result {
   size_t fragment_index_counters_length;
   size_t fragment_index_counters_capacity;
   uint64_t generation;
+  size_t ref_count;
+  bool self_allocated;
+  bool destroy_self_on_zero;
   bool frozen;
 };
 
-typedef struct layout_block {
+struct layout_box {
   layout_object_t* object;
+  layout_result_t** layout_results;
+  size_t layout_results_length;
+  size_t layout_results_capacity;
+};
+
+typedef struct layout_block {
+  layout_box_t* box;
   layout_object_child_list_t children;
 } layout_block_t;
 
@@ -98,6 +115,7 @@ struct layout_object {
   layout_object_t* next;
   lxb_dom_node_t* node;
   const lxb_style_computed_t* style;
+  layout_box_t* box;
   layout_fragment_data_list_t fragment_data;
   layout_native_embed_token_t native_embed_token;
   unsigned bitfields;
@@ -133,7 +151,6 @@ struct layout_fragment_link {
 };
 
 struct layout_scene_node {
-  layout_fragment_t* fragment;
   layout_fragment_key_t key;
   layout_fragment_key_t parent_key;
   layout_fragment_key_t previous_sibling_key;
@@ -257,8 +274,23 @@ layout_object_unlink_from_siblings(layout_object_t* object);
 void
 layout_object_init_fragment_data(layout_object_t* object);
 
+layout_box_t*
+layout_box_create(layout_t* layout, layout_object_t* object);
+
+void
+layout_box_release_all_results(layout_t* layout);
+
+void
+layout_object_detach_box(layout_object_t* object);
+
 void
 layout_object_set_internal_type_bits(layout_object_t* object,
                                      unsigned internal_bits);
+
+lxb_status_t
+layout_lifecycle_mark_update_pending(layout_t* layout);
+
+void
+layout_lifecycle_abort_update(layout_t* layout);
 
 #endif /* LAYOUT_INTERNAL_H */

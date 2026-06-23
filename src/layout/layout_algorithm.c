@@ -1780,6 +1780,11 @@ layout_algorithm_build_fragments(layout_tree_t *tree,
         return LXB_STATUS_ERROR_OBJECT_IS_NULL;
     }
 
+    if (layout_tree_layout(tree) == NULL
+        || layout_lifecycle_is_postponed(layout_tree_layout(tree))) {
+        return LXB_STATUS_ERROR_WRONG_STAGE;
+    }
+
     if (layout_result_is_frozen(result)) {
         return LXB_STATUS_ERROR_WRONG_STAGE;
     }
@@ -1795,6 +1800,12 @@ layout_algorithm_build_fragments(layout_tree_t *tree,
     root_object = layout_tree_root_object(tree);
     if (root_object == NULL) {
         return LXB_STATUS_ERROR_WRONG_STAGE;
+    }
+
+    status = layout_lifecycle_advance_to(layout_tree_layout(tree),
+                                         LAYOUT_LIFECYCLE_IN_LAYOUT);
+    if (status != LXB_STATUS_OK) {
+        return status;
     }
 
     if (builder != NULL) {
@@ -1814,12 +1825,17 @@ layout_algorithm_build_fragments(layout_tree_t *tree,
 
     status = layout_reflow_build_object(&ctx, &input, &root_fragment);
     if (status != LXB_STATUS_OK) {
+        layout_lifecycle_abort_update(layout_tree_layout(tree));
         return status;
     }
 
     status = layout_result_set_root_fragment(result, root_fragment);
     if (status == LXB_STATUS_OK) {
         layout_reflow_clear_object_subtree_needs_layout(tree, root_object);
+        status = layout_lifecycle_advance_to(layout_tree_layout(tree),
+                                             LAYOUT_LIFECYCLE_LAYOUT_CLEAN);
+    } else {
+        layout_lifecycle_abort_update(layout_tree_layout(tree));
     }
 
     return status;
