@@ -1,63 +1,27 @@
-# DOM 与 layout_object 生命周期绑定 API
-
-## 设计原则
-
-`layout_object_t` 的生命周期入口必须是 DOM node。
-
-每个可渲染 DOM node 通过 `lxb_dom_node_t::layout_object` 持有自己的
-`layout_object_t *`。这与 Blink 的 `Node::GetLayoutObject()` /
-`Node::SetLayoutObject()` 边界一致：节点负责 attach/detach layout tree；
-`layout_object` 只是被节点持有的布局表达，不应反过来成为生命周期入口。
-
-因此：
-
-- 创建、复用、销毁 DOM-backed layout object 都从 `lxb_dom_node_t *` API 发起。
-- `layout_object_t` 内部可以被清理状态，但这只是 DOM detach 的实现细节。
-- anonymous layout object 不绑定 DOM node，不写入 `node->layout_object`。
+# layout 模块
+dom和layoutobject的生命周期绑定
 
 ## DOM 槽语义
-
-`lxb_dom_node_t::layout_object` 是布局层专用槽。
-
+`lxb_dom_node_t::layout_object` 是布局层专用槽。  
 它不同于 `node->user`：
-
 - `user` 仍保留给外部集成或调试用途。
 - `layout_object` 只保存 `layout_object_t *`。
 - clone/copy DOM node 时不能继承该指针，新节点必须重新 attach。
 - layout/core 销毁或清理时必须清掉仍指向本 layout 的 DOM 槽。
 
 ## API
-
 ```c
-// 宏 `node->layout_object`。
+// 宏 平凡的getter,不会检查指针是否为空。
 layout_object_t *
 layout_dom_node_layout_object(lxb_dom_node_t *node);
 
-// 确保 DOM node 拥有当前 `layout_t` 下的 layout object。
-lxb_status_t
-layout_dom_node_ensure_layout_object(layout_t *layout,
-                                     lxb_dom_node_t *node,
-                                     layout_object_t **out_object);
-```
+// 把一个 DOM 子树按 computed style 转换并挂接进 layout_tree_t 的 layout object tree
+layout_dom_node_attach_layout_tree(layout_tree_t* tree, lxb_dom_node_t* node,
+layout_object_t* parent);
 
-行为：
-
-- `display:none`：detach 整个 subtree，`out_object` 返回 `NULL`。
-- `display:contents`：detach 当前 node 的 layout object，但保留子节点后续 attach 机会。
-- 无 computed style 或非可渲染节点：detach subtree，`out_object` 返回 `NULL`。
-- 已有同一 `layout_t` 的对象：复用并更新 computed style 引用。2
-- 已有其他 `layout_t` 的对象：先从 DOM node detach，再为当前 `layout_t` 创建新对象。
-
-```c
 void
 layout_dom_node_detach_layout_tree(lxb_dom_node_t *node);
-```
 
-对应 Blink `Node::DetachLayoutTree()` 的最小 C 语义：销毁/解绑当前 node 的
-layout object，清 `node->layout_object`，释放 layout object 持有的 style 引用，
-断开 parent/sibling 关系。
-
-```c
 void
 layout_dom_node_detach_layout_subtree(lxb_dom_node_t *root_node);
 ```

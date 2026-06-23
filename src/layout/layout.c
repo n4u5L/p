@@ -9,6 +9,7 @@
 #include "lexbor/core/lexbor.h"
 #include "lexbor/core/mraw.h"
 #include "lexbor/dom/interfaces/element.h"
+#include "lexbor/dom/interfaces/text.h"
 #include "lexbor/css/property/const.h"
 
 #define LAYOUT_OBJECT_CHUNK 128
@@ -316,7 +317,12 @@ layout_tree_append_record(layout_tree_t* tree, lxb_dom_node_t* dom_node,
                           layout_object_t* object);
 
 static layout_object_t*
-layout_dom_node_create_layout_object(layout_t* layout, lxb_dom_node_t* node);
+layout_dom_node_create_layout_object(layout_t* layout, lxb_dom_node_t* node,
+                                     const lxb_style_computed_t* style);
+
+static bool
+layout_dom_text_node_layout_object_is_needed(lxb_dom_node_t* node,
+                                             layout_tree_node_t* parent);
 
 static layout_block_t*
 layout_block_create(layout_t* layout, layout_object_t* object) {
@@ -635,13 +641,23 @@ layout_object_display_none(layout_object_t* object) {
 
 static const lxb_style_computed_t*
 layout_node_style(lxb_dom_node_t* node) {
-  if (node == NULL || node->type != LXB_DOM_NODE_TYPE_ELEMENT) {
-    return NULL;
-  }
-
   return (const lxb_style_computed_t*)
       lxb_dom_interface_element(node)
           ->computed_style;
+}
+
+static bool
+layout_dom_text_node_layout_object_is_needed(lxb_dom_node_t* node,
+                                             layout_tree_node_t* parent) {
+  lxb_dom_text_t* text;
+
+  if (node == NULL || node->type != LXB_DOM_NODE_TYPE_TEXT || parent == NULL
+      || parent->block == NULL || parent->object == NULL) {
+    return false;
+  }
+
+  text = lxb_dom_interface_text(node);
+  return text->char_data.data.length != 0;
 }
 
 static bool
@@ -855,11 +871,6 @@ layout_object_release_styles(layout_t* layout) {
       object->next = NULL;
     }
   }
-}
-
-static const lxb_style_computed_t*
-layout_dom_node_layout_style(lxb_dom_node_t* node) {
-  return layout_node_style(node);
 }
 
 static void
@@ -2005,34 +2016,42 @@ layout_tree_append_record(layout_tree_t* tree, lxb_dom_node_t* dom_node,
 }
 
 static lxb_status_t
-layout_tree_build_node(layout_tree_t* tree, lxb_dom_node_t* dom_node,
-                       layout_tree_node_t* parent) {
-  const lxb_style_computed_t* style;
+layout_dom_node_attach_layout_tree_record(layout_tree_t* tree,
+                                          lxb_dom_node_t* dom_node,
+                                          layout_tree_node_t* parent) {
+  const lxb_style_computed_t* style = NULL;
   layout_tree_node_t* current_parent = parent;
 
   if (tree == NULL || dom_node == NULL) {
     return LXB_STATUS_ERROR_OBJECT_IS_NULL;
   }
 
-  style = layout_node_style(dom_node);
-  if (layout_style_display_none(style)) {
-    layout_dom_node_detach_layout_subtree(dom_node);
-    return LXB_STATUS_OK;
+  if (dom_node->type == LXB_DOM_NODE_TYPE_ELEMENT) {
+    style = layout_node_style(dom_node);
+  } else if (layout_dom_text_node_layout_object_is_needed(dom_node, parent)) {
+    style = parent->object->style;
   }
 
-  if (style != NULL && !layout_style_display_contents(style)) {
+  if (style == NULL) {
+    layout_dom_node_detach_layout_tree(dom_node);
+  } else if (layout_style_display_none(style)) {
+    layout_dom_node_detach_layout_subtree(dom_node);
+    return LXB_STATUS_OK;
+  } else if (layout_style_display_contents(style)) {
+    layout_dom_node_detach_layout_tree(dom_node);
+  } else {
     layout_object_t* object;
     layout_tree_node_t* node;
     layout_block_t* block = NULL;
     bool is_tree_root = parent == NULL && tree->root_object == NULL;
 
-    lxb_status_t status =
-        layout_dom_node_ensure_layout_object(tree->layout, dom_node, &object);
-    if (status != LXB_STATUS_OK) {
-      return status;
+    if (layout_tree_node_for_dom_node(tree, dom_node) != NULL) {
+      return LXB_STATUS_ERROR_WRONG_ARGS;
     }
+
+    object = layout_dom_node_create_layout_object(tree->layout, dom_node, style);
     if (object == NULL) {
-      return LXB_STATUS_OK;
+      return LXB_STATUS_ERROR_MEMORY_ALLOCATION;
     }
 
     layout_tree_prepare_dom_node_for_attach(dom_node);
@@ -2079,8 +2098,98 @@ layout_tree_build_node(layout_tree_t* tree, lxb_dom_node_t* dom_node,
     if (block != NULL) {
       current_parent = node;
     }
-  } else if (style != NULL) {
+  }
+
+  for (lxb_dom_node_t* child = dom_node->first_child; child != NULL;
+       child = child->next) {
+    lxb_status_t status =
+        layout_dom_node_attach_layout_tree_record(tree, child, current_parent);
+    if (status != LXB_STATUS_OK) {
+      return status;
+    }
+  }
+
+  return LXB_STATUS_OK;
+}
+
+static lxb_status_t
+layout_tree_build_node(layout_tree_t* tree, lxb_dom_node_t* dom_node,
+                       layout_tree_node_t* parent) {
+  const lxb_style_computed_t* style = NULL;
+  layout_tree_node_t* current_parent = parent;
+
+  if (tree == NULL || dom_node == NULL) {
+    return LXB_STATUS_ERROR_OBJECT_IS_NULL;
+  }
+
+  if (dom_node->type == LXB_DOM_NODE_TYPE_ELEMENT) {
+    style = layout_node_style(dom_node);
+  } else if (layout_dom_text_node_layout_object_is_needed(dom_node, parent)) {
+    style = parent->object->style;
+  }
+
+  if (style == NULL) {
     layout_dom_node_detach_layout_tree(dom_node);
+  } else if (layout_style_display_none(style)) {
+    layout_dom_node_detach_layout_subtree(dom_node);
+    return LXB_STATUS_OK;
+  } else if (layout_style_display_contents(style)) {
+    layout_dom_node_detach_layout_tree(dom_node);
+  } else {
+    layout_object_t* object;
+    layout_tree_node_t* node;
+    layout_block_t* block = NULL;
+    bool is_tree_root = parent == NULL && tree->root_object == NULL;
+
+    object = layout_dom_node_create_layout_object(tree->layout, dom_node, style);
+    if (object == NULL) {
+      return LXB_STATUS_ERROR_MEMORY_ALLOCATION;
+    }
+
+    layout_tree_prepare_dom_node_for_attach(dom_node);
+
+    if (is_tree_root || layout_style_is_block_capable(style)) {
+      block = layout_block_create(tree->layout, object);
+      if (block == NULL) {
+        return LXB_STATUS_ERROR_MEMORY_ALLOCATION;
+      }
+    }
+
+    node = layout_tree_append_record(tree, dom_node, object);
+    if (node == NULL) {
+      return LXB_STATUS_ERROR_MEMORY_ALLOCATION;
+    }
+    node->block = block;
+
+    if (parent == NULL) {
+      if (tree->root_object != NULL) {
+        return LXB_STATUS_ERROR_WRONG_ARGS;
+      }
+
+      tree->root_object = object;
+      object->bitfields |=
+          LAYOUT_OBJECT_INTERNAL_VIEWPORT_CONTAINING_BLOCK;
+      layout_object_update_style_derived_bits(object);
+    } else {
+      layout_tree_node_t* layout_parent;
+
+      if (parent->block == NULL) {
+        return LXB_STATUS_ERROR_WRONG_ARGS;
+      }
+
+      layout_parent = layout_tree_add_child_to_block(tree, parent, node, style);
+      if (layout_parent == NULL) {
+        return LXB_STATUS_ERROR_MEMORY_ALLOCATION;
+      }
+
+      if (block == NULL) {
+        current_parent = layout_parent;
+      }
+    }
+
+    if (block != NULL) {
+      current_parent = node;
+    }
   }
 
   for (lxb_dom_node_t* child = dom_node->first_child; child != NULL;
@@ -2151,7 +2260,6 @@ layout_tree_destroy(layout_tree_t* tree, bool destroy_self) {
     return lexbor_free(tree);
   }
 
-  memset(tree, 0, sizeof(layout_tree_t));
   return tree;
 }
 
@@ -2196,54 +2304,25 @@ layout_tree_root_object(layout_tree_t* tree) {
 }
 
 lxb_status_t
-layout_dom_node_ensure_layout_object(layout_t* layout, lxb_dom_node_t* node,
-                                     layout_object_t** out_object) {
-  const lxb_style_computed_t* style;
-  layout_object_t* object;
+layout_dom_node_attach_layout_tree(layout_tree_t* tree, lxb_dom_node_t* node,
+                                   layout_object_t* parent) {
+  layout_tree_node_t* parent_node = NULL;
 
-  if (out_object != NULL) {
-    *out_object = NULL;
-  }
-
-  if (layout == NULL || node == NULL) {
+  if (tree == NULL || node == NULL) {
     return LXB_STATUS_ERROR_OBJECT_IS_NULL;
   }
 
-  style = layout_dom_node_layout_style(node);
-  if (style == NULL || layout_style_display_none(style)) {
-    layout_dom_node_detach_layout_subtree(node);
-    return LXB_STATUS_OK;
-  }
-  if (layout_style_display_contents(style)) {
-    layout_dom_node_detach_layout_tree(node);
-    return LXB_STATUS_OK;
-  }
-
-  object = layout_dom_node_layout_object(node);
-  if (object != NULL) {
-    if (object->layout != layout) {
-      layout_dom_node_detach_layout_tree(node);
-      object = NULL;
-    } else {
-      lxb_status_t status = layout_object_set_style(object, style);
-      if (status != LXB_STATUS_OK) {
-        return status;
-      }
+  if (parent != NULL) {
+    parent_node = layout_tree_node_for_object(tree, parent);
+    if (parent_node == NULL) {
+      return LXB_STATUS_ERROR_NOT_EXISTS;
+    }
+    if (parent_node->block == NULL) {
+      return LXB_STATUS_ERROR_WRONG_ARGS;
     }
   }
 
-  if (object == NULL) {
-    object = layout_dom_node_create_layout_object(layout, node);
-    if (object == NULL) {
-      return LXB_STATUS_ERROR_MEMORY_ALLOCATION;
-    }
-  }
-
-  if (out_object != NULL) {
-    *out_object = object;
-  }
-
-  return LXB_STATUS_OK;
+  return layout_dom_node_attach_layout_tree_record(tree, node, parent_node);
 }
 
 void layout_dom_node_detach_layout_tree(lxb_dom_node_t* node) {
@@ -2767,11 +2846,11 @@ layout_oof_positioned_placement(layout_oof_positioned_t* oof) {
 }
 
 static layout_object_t*
-layout_dom_node_create_layout_object(layout_t* layout, lxb_dom_node_t* node) {
+layout_dom_node_create_layout_object(layout_t* layout, lxb_dom_node_t* node,
+                                     const lxb_style_computed_t* style) {
   layout_object_t* object;
-  const lxb_style_computed_t* style = NULL;
 
-  if (layout == NULL || layout->objects == NULL || node == NULL) {
+  if (layout == NULL || layout->objects == NULL || node == NULL || style == NULL) {
     return NULL;
   }
 
@@ -2780,26 +2859,12 @@ layout_dom_node_create_layout_object(layout_t* layout, lxb_dom_node_t* node) {
     if (object->layout != layout) {
       layout_dom_node_detach_layout_tree(node);
     } else {
-      style = layout_dom_node_layout_style(node);
-      if (style == NULL) {
-        return NULL;
-      }
-
       if (layout_object_set_style(object, style) != LXB_STATUS_OK) {
         return NULL;
       }
 
       return object;
     }
-  }
-
-  if (node->type == LXB_DOM_NODE_TYPE_ELEMENT) {
-    lxb_dom_element_t* element = lxb_dom_interface_element(node);
-    style = (const lxb_style_computed_t*)element->computed_style;
-  }
-
-  if (style == NULL) {
-    return NULL;
   }
 
   object = lexbor_dobject_calloc(layout->objects);

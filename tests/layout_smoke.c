@@ -6,6 +6,7 @@
 #include "lexbor/css/property/const.h"
 #include "lexbor/dom/interface.h"
 #include "lexbor/dom/interfaces/element.h"
+#include "lexbor/dom/interfaces/text.h"
 
 static int failed = 0;
 
@@ -566,6 +567,15 @@ init_element(lxb_dom_element_t *element, lxb_style_computed_t *style)
 }
 
 static void
+init_text(lxb_dom_text_t *text, const char *data)
+{
+    memset(text, 0, sizeof(*text));
+    text->char_data.node.type = LXB_DOM_NODE_TYPE_TEXT;
+    text->char_data.data.data = (lxb_char_t *) data;
+    text->char_data.data.length = data == NULL ? 0 : strlen(data);
+}
+
+static void
 append_dom_child(lxb_dom_node_t *parent, lxb_dom_node_t *child)
 {
     child->parent = parent;
@@ -677,6 +687,7 @@ node_style_reference_smoke(layout_t *layout)
 {
     lxb_dom_element_t element;
     lxb_style_computed_t *style = make_style();
+    layout_tree_t *tree = NULL;
     layout_object_t *object;
 
     check(style != NULL, "computed style allocates");
@@ -684,14 +695,19 @@ node_style_reference_smoke(layout_t *layout)
         return;
     }
 
-    memset(&element, 0, sizeof(element));
-    element.node.type = LXB_DOM_NODE_TYPE_ELEMENT;
-    element.computed_style = style;
+    init_element(&element, style);
 
-    check(layout_dom_node_ensure_layout_object(
-              layout, lxb_dom_interface_node(&element), &object)
+    tree = layout_tree_create(layout);
+    check(tree != NULL, "node style reference tree allocates");
+    if (tree == NULL) {
+        goto done;
+    }
+
+    check(layout_dom_node_attach_layout_tree(
+              tree, lxb_dom_interface_node(&element), NULL)
               == LXB_STATUS_OK,
-          "layout object ensure for DOM node succeeds");
+          "layout DOM attach for node style reference succeeds");
+    object = layout_tree_root_object(tree);
 
     check(object != NULL, "layout object binds DOM node computed style");
     check(layout_object_node(object) == lxb_dom_interface_node(&element),
@@ -701,6 +717,8 @@ node_style_reference_smoke(layout_t *layout)
     check(layout_object_style(object) == style,
           "layout object references element computed style");
 
+done:
+    layout_tree_destroy(tree, true);
     lxb_style_computed_unref(style);
 }
 
@@ -769,6 +787,7 @@ layout_object_identity_smoke(layout_t *layout)
     lxb_style_computed_t *style = make_style();
     layout_object_t *dom_first;
     layout_object_t *dom_second;
+    layout_tree_t *tree = NULL;
     uint64_t first_id = layout_object_id(first);
     uint64_t second_id = layout_object_id(second);
     uint64_t dom_id;
@@ -781,23 +800,41 @@ layout_object_identity_smoke(layout_t *layout)
     check(style != NULL, "layout object id DOM style allocates");
     if (style != NULL) {
         init_element(&element, style);
-        check(layout_dom_node_ensure_layout_object(
-                  layout, lxb_dom_interface_node(&element), &dom_first)
+        tree = layout_tree_create(layout);
+        check(tree != NULL, "DOM-backed first layout tree allocates");
+        if (tree == NULL) {
+            goto after_dom_identity;
+        }
+        check(layout_dom_node_attach_layout_tree(
+                  tree, lxb_dom_interface_node(&element), NULL)
                   == LXB_STATUS_OK,
-              "DOM-backed first layout object ensures");
+              "DOM-backed first layout object attaches");
+        dom_first = layout_tree_root_object(tree);
         dom_id = layout_object_id(dom_first);
+        layout_tree_destroy(tree, true);
+        tree = NULL;
         layout_clean(layout);
         element.computed_style = style;
-        check(layout_dom_node_ensure_layout_object(
-                  layout, lxb_dom_interface_node(&element), &dom_second)
+        tree = layout_tree_create(layout);
+        check(tree != NULL, "DOM-backed second layout tree allocates");
+        if (tree == NULL) {
+            goto after_dom_identity;
+        }
+        check(layout_dom_node_attach_layout_tree(
+                  tree, lxb_dom_interface_node(&element), NULL)
                   == LXB_STATUS_OK,
-              "DOM-backed second layout object ensures");
+              "DOM-backed second layout object attaches");
+        dom_second = layout_tree_root_object(tree);
         check(dom_first != NULL && dom_second != NULL,
               "DOM-backed layout objects allocate across clean");
         check(dom_id != 0 && layout_object_id(dom_second) == dom_id,
               "DOM-backed layout object id is stable for the same node");
+        layout_tree_destroy(tree, true);
+        tree = NULL;
     }
 
+after_dom_identity:
+    layout_tree_destroy(tree, true);
     layout_clean(layout);
 
     first = make_object(layout);
@@ -1124,6 +1161,174 @@ done:
     }
     if (transparent_child_style != NULL) {
         lxb_style_computed_unref(transparent_child_style);
+    }
+}
+
+static void
+layout_dom_node_attach_layout_tree_smoke(layout_t *layout)
+{
+    lxb_style_computed_t *root_style = make_style();
+    lxb_style_computed_t *first_style = make_style();
+    lxb_style_computed_t *contents_style = make_style();
+    lxb_style_computed_t *flattened_style = make_style();
+    lxb_style_computed_t *none_style = make_style();
+    lxb_style_computed_t *hidden_child_style = make_style();
+    lxb_dom_element_t root;
+    lxb_dom_element_t first;
+    lxb_dom_element_t contents;
+    lxb_dom_element_t flattened;
+    lxb_dom_element_t none;
+    lxb_dom_element_t hidden_child;
+    lxb_dom_text_t text;
+    lxb_dom_text_t flattened_text;
+    lxb_dom_text_t empty_text;
+    layout_tree_t *tree = NULL;
+    layout_object_t *root_object;
+    layout_object_t *first_object;
+    layout_object_t *flattened_object;
+    layout_object_t *text_object;
+    layout_object_t *flattened_text_object;
+    layout_object_child_list_t *root_children;
+
+    check(root_style != NULL && first_style != NULL && contents_style != NULL
+              && flattened_style != NULL && none_style != NULL
+              && hidden_child_style != NULL,
+          "layout DOM attach styles allocate");
+    if (root_style == NULL || first_style == NULL || contents_style == NULL
+        || flattened_style == NULL || none_style == NULL
+        || hidden_child_style == NULL) {
+        goto done;
+    }
+
+    set_style_display(root_style, LXB_CSS_PROPERTY__UNDEF,
+                      LXB_CSS_DISPLAY_BLOCK, LXB_CSS_DISPLAY_FLOW);
+    set_style_display(first_style, LXB_CSS_PROPERTY__UNDEF,
+                      LXB_CSS_DISPLAY_BLOCK, LXB_CSS_DISPLAY_FLOW);
+    set_style_display(contents_style, LXB_CSS_DISPLAY_CONTENTS,
+                      LXB_CSS_DISPLAY_INLINE, LXB_CSS_DISPLAY_FLOW);
+    set_style_display(flattened_style, LXB_CSS_PROPERTY__UNDEF,
+                      LXB_CSS_DISPLAY_BLOCK, LXB_CSS_DISPLAY_FLOW);
+    set_style_display(none_style, LXB_CSS_DISPLAY_NONE,
+                      LXB_CSS_DISPLAY_INLINE, LXB_CSS_DISPLAY_FLOW);
+    set_style_display(hidden_child_style, LXB_CSS_PROPERTY__UNDEF,
+                      LXB_CSS_DISPLAY_BLOCK, LXB_CSS_DISPLAY_FLOW);
+
+    init_element(&root, root_style);
+    init_element(&first, first_style);
+    init_element(&contents, contents_style);
+    init_element(&flattened, flattened_style);
+    init_element(&none, none_style);
+    init_element(&hidden_child, hidden_child_style);
+    init_text(&text, "hello");
+    init_text(&flattened_text, "flattened text");
+    init_text(&empty_text, "");
+
+    append_dom_child(lxb_dom_interface_node(&root),
+                     lxb_dom_interface_node(&first));
+    append_dom_child(lxb_dom_interface_node(&root),
+                     lxb_dom_interface_node(&text));
+    append_dom_child(lxb_dom_interface_node(&contents),
+                     lxb_dom_interface_node(&flattened));
+    append_dom_child(lxb_dom_interface_node(&contents),
+                     lxb_dom_interface_node(&flattened_text));
+    append_dom_child(lxb_dom_interface_node(&contents),
+                     lxb_dom_interface_node(&empty_text));
+    append_dom_child(lxb_dom_interface_node(&contents),
+                     lxb_dom_interface_node(&none));
+    append_dom_child(lxb_dom_interface_node(&none),
+                     lxb_dom_interface_node(&hidden_child));
+
+    tree = layout_tree_create(layout);
+    check(tree != NULL, "layout DOM attach tree allocates");
+    if (tree == NULL) {
+        goto done;
+    }
+
+    check(layout_dom_node_attach_layout_tree(
+              tree, lxb_dom_interface_node(&root), NULL)
+              == LXB_STATUS_OK,
+          "layout DOM attach creates root layout tree");
+    root_object = layout_tree_root_object(tree);
+    first_object =
+        layout_tree_object_for_node(tree, lxb_dom_interface_node(&first));
+    text_object =
+        layout_tree_object_for_node(tree, lxb_dom_interface_node(&text));
+    root_children = layout_tree_children(tree, root_object);
+    check(root_object == layout_tree_object_for_node(
+                             tree, lxb_dom_interface_node(&root)),
+          "layout DOM attach maps root DOM node");
+    check(root_children != NULL
+              && layout_object_slow_first_child(root_children) == first_object
+              && layout_object_slow_last_child(root_children) == text_object,
+          "layout DOM attach links initial children under root");
+    check(text_object != NULL
+              && layout_object_parent(text_object) == root_object,
+          "layout DOM attach creates object for non-empty text node");
+    check(layout_object_style(text_object) == root_style,
+          "layout DOM attach text object references parent style");
+
+    append_dom_child(lxb_dom_interface_node(&root),
+                     lxb_dom_interface_node(&contents));
+    check(layout_dom_node_attach_layout_tree(
+              tree, lxb_dom_interface_node(&contents), root_object)
+              == LXB_STATUS_OK,
+          "layout DOM attach incrementally attaches child subtree");
+
+    flattened_object =
+        layout_tree_object_for_node(tree, lxb_dom_interface_node(&flattened));
+    flattened_text_object =
+        layout_tree_object_for_node(tree,
+                                    lxb_dom_interface_node(&flattened_text));
+    root_children = layout_tree_children(tree, root_object);
+    check(layout_tree_object_for_node(tree, lxb_dom_interface_node(&contents))
+              == NULL,
+          "layout DOM attach keeps display:contents node transparent");
+    check(flattened_object != NULL
+              && layout_object_parent(flattened_object) == root_object,
+          "layout DOM attach flattens display:contents child to parent");
+    check(layout_object_next_sibling(text_object) == flattened_object,
+          "layout DOM attach appends flattened child after existing siblings");
+    check(layout_object_next_sibling(flattened_object)
+              == flattened_text_object,
+          "layout DOM attach creates flattened text sibling");
+    check(flattened_text_object != NULL
+              && layout_object_parent(flattened_text_object) == root_object
+              && layout_object_style(flattened_text_object) == root_style,
+          "layout DOM attach flattened text uses nearest layout parent style");
+    check(layout_object_slow_last_child(root_children) == flattened_text_object,
+          "layout DOM attach updates root child-list tail");
+    check(layout_tree_object_for_node(tree,
+                                      lxb_dom_interface_node(&empty_text))
+              == NULL,
+          "layout DOM attach skips empty text node");
+    check(layout_tree_object_for_node(tree, lxb_dom_interface_node(&none))
+              == NULL,
+          "layout DOM attach skips display:none node");
+    check(layout_tree_object_for_node(tree,
+                                      lxb_dom_interface_node(&hidden_child))
+              == NULL,
+          "layout DOM attach skips display:none descendants");
+
+done:
+    layout_tree_destroy(tree, true);
+
+    if (root_style != NULL) {
+        lxb_style_computed_unref(root_style);
+    }
+    if (first_style != NULL) {
+        lxb_style_computed_unref(first_style);
+    }
+    if (contents_style != NULL) {
+        lxb_style_computed_unref(contents_style);
+    }
+    if (flattened_style != NULL) {
+        lxb_style_computed_unref(flattened_style);
+    }
+    if (none_style != NULL) {
+        lxb_style_computed_unref(none_style);
+    }
+    if (hidden_child_style != NULL) {
+        lxb_style_computed_unref(hidden_child_style);
     }
 }
 
@@ -6243,6 +6448,7 @@ main(void)
     run_layout_smoke(layout_object_style_derived_bits_smoke);
     run_layout_smoke(layout_object_identity_smoke);
     run_layout_smoke(layout_tree_builder_smoke);
+    run_layout_smoke(layout_dom_node_attach_layout_tree_smoke);
     run_layout_smoke(layout_tree_fragment_builder_smoke);
     run_layout_smoke(layout_block_reflow_auto_height_smoke);
     run_layout_smoke(layout_reflow_input_constraints_smoke);

@@ -269,8 +269,8 @@ lxb_status_t
 layout_tree_build(layout_tree_t* tree, lxb_dom_node_t* root_node);
 
 lxb_status_t
-layout_dom_node_ensure_layout_object(layout_t* layout, lxb_dom_node_t* node,
-                                     layout_object_t** out_object);
+layout_dom_node_attach_layout_tree(layout_tree_t* tree, lxb_dom_node_t* node,
+                                   layout_object_t* parent);
 
 void layout_dom_node_detach_layout_tree(lxb_dom_node_t* node);
 
