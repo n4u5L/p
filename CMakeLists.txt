@@ -61,11 +61,50 @@ else()
     set(FREETYPE_LINK_TARGET freetype)
 endif()
 
+add_library(layout_core STATIC
+    src/layout/layout.c
+    src/layout/layout_algorithm.c
+)
+target_include_directories(layout_core PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+target_link_libraries(layout_core PUBLIC Lexbor::Lexbor)
+
+add_library(qt_adaptor STATIC
+    src/qt_adaptor/layout_scene_adapter.cpp
+)
+target_include_directories(qt_adaptor PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+target_link_libraries(qt_adaptor PUBLIC
+    Qt6::Quick
+    layout_core
+)
+
 # End-to-end smoke test for Lexbor computed style (Lexbor-only, no Qt).
 add_executable(style_smoke tests/style_smoke.cpp)
 target_link_libraries(style_smoke PRIVATE Lexbor::Lexbor)
 
+add_executable(layout_smoke tests/layout_smoke.c)
+target_link_libraries(layout_smoke PRIVATE layout_core)
+
+add_executable(qquickitem_embed_smoke tests/qquickitem_embed_smoke.cpp)
+target_link_libraries(qquickitem_embed_smoke PRIVATE
+    Qt6::Gui
+    Qt6::Quick
+    layout_core
+    Lexbor::Lexbor
+)
+
+add_executable(layout_scene_adapter_smoke tests/layout_scene_adapter_smoke.cpp)
+target_link_libraries(layout_scene_adapter_smoke PRIVATE
+    Qt6::Gui
+    qt_adaptor
+    layout_core
+)
+
 add_executable(main
+    src/main.cpp
 )
 
 target_link_libraries(main PRIVATE
@@ -74,6 +113,8 @@ target_link_libraries(main PRIVATE
     Qt6::Qml
     MuPDF::MuPDF
     Lexbor::Lexbor
+    layout_core
+    qt_adaptor
     PNG::PNG
     ZLIB::ZLIB
     "${FREETYPE_LINK_TARGET}"

@@ -6,6 +6,7 @@
 
 #include "lexbor/style/property_compute.h"
 #include "lexbor/style/dom/interfaces/element.h"
+#include "lexbor/style/property_compute_res.h"
 
 typedef enum {
   LXB_STYLE_GLOBAL_NONE = 0x00,
@@ -84,113 +85,14 @@ lxb_style_color_rgba(double r, double g, double b, double a);
 
 lxb_style_property_compute_f
 lxb_style_property_compute_by_id(lxb_css_property_type_t id) {
-  switch (id) {
-  case LXB_CSS_PROPERTY_BACKGROUND_COLOR:
-    return lxb_css_property_compute_background_color;
-  case LXB_CSS_PROPERTY_BORDER:
-    return lxb_css_property_compute_border;
-  case LXB_CSS_PROPERTY_BORDER_BOTTOM:
-    return lxb_css_property_compute_border_bottom;
-  case LXB_CSS_PROPERTY_BORDER_BOTTOM_COLOR:
-    return lxb_css_property_compute_border_bottom_color;
-  case LXB_CSS_PROPERTY_BORDER_LEFT:
-    return lxb_css_property_compute_border_left;
-  case LXB_CSS_PROPERTY_BORDER_LEFT_COLOR:
-    return lxb_css_property_compute_border_left_color;
-  case LXB_CSS_PROPERTY_BORDER_RIGHT:
-    return lxb_css_property_compute_border_right;
-  case LXB_CSS_PROPERTY_BORDER_RIGHT_COLOR:
-    return lxb_css_property_compute_border_right_color;
-  case LXB_CSS_PROPERTY_BORDER_TOP:
-    return lxb_css_property_compute_border_top;
-  case LXB_CSS_PROPERTY_BORDER_TOP_COLOR:
-    return lxb_css_property_compute_border_top_color;
-  case LXB_CSS_PROPERTY_BOTTOM:
-    return lxb_css_property_compute_bottom;
-  case LXB_CSS_PROPERTY_BOX_SIZING:
-    return lxb_css_property_compute_box_sizing;
-  case LXB_CSS_PROPERTY_CLEAR:
-    return lxb_css_property_compute_clear;
-  case LXB_CSS_PROPERTY_COLOR:
-    return lxb_css_property_compute_color;
-  case LXB_CSS_PROPERTY_DIRECTION:
-    return lxb_css_property_compute_direction;
-  case LXB_CSS_PROPERTY_DISPLAY:
-    return lxb_css_property_compute_display;
-  case LXB_CSS_PROPERTY_FLOAT:
-    return lxb_css_property_compute_float;
-  case LXB_CSS_PROPERTY_FONT_SIZE:
-    return lxb_css_property_compute_font_size;
-  case LXB_CSS_PROPERTY_FONT_STRETCH:
-    return lxb_css_property_compute_font_stretch;
-  case LXB_CSS_PROPERTY_FONT_STYLE:
-    return lxb_css_property_compute_font_style;
-  case LXB_CSS_PROPERTY_FONT_WEIGHT:
-    return lxb_css_property_compute_font_weight;
-  case LXB_CSS_PROPERTY_HEIGHT:
-    return lxb_css_property_compute_height;
-  case LXB_CSS_PROPERTY_LEFT:
-    return lxb_css_property_compute_left;
-  case LXB_CSS_PROPERTY_LINE_HEIGHT:
-    return lxb_css_property_compute_line_height;
-  case LXB_CSS_PROPERTY_MARGIN:
-    return lxb_css_property_compute_margin;
-  case LXB_CSS_PROPERTY_MARGIN_BOTTOM:
-    return lxb_css_property_compute_margin_bottom;
-  case LXB_CSS_PROPERTY_MARGIN_LEFT:
-    return lxb_css_property_compute_margin_left;
-  case LXB_CSS_PROPERTY_MARGIN_RIGHT:
-    return lxb_css_property_compute_margin_right;
-  case LXB_CSS_PROPERTY_MARGIN_TOP:
-    return lxb_css_property_compute_margin_top;
-  case LXB_CSS_PROPERTY_MAX_HEIGHT:
-    return lxb_css_property_compute_max_height;
-  case LXB_CSS_PROPERTY_MAX_WIDTH:
-    return lxb_css_property_compute_max_width;
-  case LXB_CSS_PROPERTY_MIN_HEIGHT:
-    return lxb_css_property_compute_min_height;
-  case LXB_CSS_PROPERTY_MIN_WIDTH:
-    return lxb_css_property_compute_min_width;
-  case LXB_CSS_PROPERTY_OPACITY:
-    return lxb_css_property_compute_opacity;
-  case LXB_CSS_PROPERTY_OVERFLOW_X:
-    return lxb_css_property_compute_overflow_x;
-  case LXB_CSS_PROPERTY_OVERFLOW_Y:
-    return lxb_css_property_compute_overflow_y;
-  case LXB_CSS_PROPERTY_PADDING:
-    return lxb_css_property_compute_padding;
-  case LXB_CSS_PROPERTY_PADDING_BOTTOM:
-    return lxb_css_property_compute_padding_bottom;
-  case LXB_CSS_PROPERTY_PADDING_LEFT:
-    return lxb_css_property_compute_padding_left;
-  case LXB_CSS_PROPERTY_PADDING_RIGHT:
-    return lxb_css_property_compute_padding_right;
-  case LXB_CSS_PROPERTY_PADDING_TOP:
-    return lxb_css_property_compute_padding_top;
-  case LXB_CSS_PROPERTY_POSITION:
-    return lxb_css_property_compute_position;
-  case LXB_CSS_PROPERTY_RIGHT:
-    return lxb_css_property_compute_right;
-  case LXB_CSS_PROPERTY_TEXT_ALIGN:
-    return lxb_css_property_compute_text_align;
-  case LXB_CSS_PROPERTY_TOP:
-    return lxb_css_property_compute_top;
-  case LXB_CSS_PROPERTY_VISIBILITY:
-    return lxb_css_property_compute_visibility;
-  case LXB_CSS_PROPERTY_WHITE_SPACE:
-    return lxb_css_property_compute_white_space;
-  case LXB_CSS_PROPERTY_WIDTH:
-    return lxb_css_property_compute_width;
-  case LXB_CSS_PROPERTY_WRITING_MODE:
-    return lxb_css_property_compute_writing_mode;
-  case LXB_CSS_PROPERTY_Z_INDEX:
-    return lxb_css_property_compute_z_index;
-  default:
+  if (id >= LXB_CSS_PROPERTY__LAST_ENTRY) {
     return NULL;
   }
+
+  return lxb_style_property_compute_data[id];
 }
 
-void lxb_css_property_compute_display(void* ctx) {
+void lxb_style_property_compute_display(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_display_t* p;
@@ -226,7 +128,7 @@ void lxb_css_property_compute_display(void* ctx) {
   lxb_style_compute_display_value(c->style->non_inherited, p);
 }
 
-void lxb_css_property_compute_position(void* ctx) {
+void lxb_style_property_compute_position(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_position_t* p;
@@ -249,7 +151,7 @@ void lxb_css_property_compute_position(void* ctx) {
   }
 }
 
-void lxb_css_property_compute_box_sizing(void* ctx) {
+void lxb_style_property_compute_box_sizing(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_box_sizing_t* p;
@@ -272,7 +174,7 @@ void lxb_css_property_compute_box_sizing(void* ctx) {
   }
 }
 
-void lxb_css_property_compute_float(void* ctx) {
+void lxb_style_property_compute_float(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_float_t* p;
@@ -295,7 +197,7 @@ void lxb_css_property_compute_float(void* ctx) {
   }
 }
 
-void lxb_css_property_compute_clear(void* ctx) {
+void lxb_style_property_compute_clear(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_clear_t* p;
@@ -318,7 +220,7 @@ void lxb_css_property_compute_clear(void* ctx) {
   }
 }
 
-void lxb_css_property_compute_direction(void* ctx) {
+void lxb_style_property_compute_direction(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_direction_t* p;
@@ -341,7 +243,7 @@ void lxb_css_property_compute_direction(void* ctx) {
   }
 }
 
-void lxb_css_property_compute_writing_mode(void* ctx) {
+void lxb_style_property_compute_writing_mode(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_writing_mode_t* p;
@@ -364,7 +266,7 @@ void lxb_css_property_compute_writing_mode(void* ctx) {
   }
 }
 
-void lxb_css_property_compute_visibility(void* ctx) {
+void lxb_style_property_compute_visibility(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_visibility_t* p;
@@ -387,7 +289,7 @@ void lxb_css_property_compute_visibility(void* ctx) {
   }
 }
 
-void lxb_css_property_compute_color(void* ctx) {
+void lxb_style_property_compute_color(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_color_t* p;
@@ -411,7 +313,7 @@ void lxb_css_property_compute_color(void* ctx) {
   }
 }
 
-void lxb_css_property_compute_background_color(void* ctx) {
+void lxb_style_property_compute_background_color(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_background_color_t* p;
@@ -436,7 +338,7 @@ void lxb_css_property_compute_background_color(void* ctx) {
   }
 }
 
-void lxb_css_property_compute_font_size(void* ctx) {
+void lxb_style_property_compute_font_size(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_font_size_t* p;
@@ -508,7 +410,7 @@ void lxb_css_property_compute_font_size(void* ctx) {
   }
 }
 
-void lxb_css_property_compute_font_weight(void* ctx) {
+void lxb_style_property_compute_font_weight(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_font_weight_t* p;
@@ -559,7 +461,7 @@ void lxb_css_property_compute_font_weight(void* ctx) {
   }
 }
 
-void lxb_css_property_compute_font_style(void* ctx) {
+void lxb_style_property_compute_font_style(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_font_style_t* p;
@@ -582,7 +484,7 @@ void lxb_css_property_compute_font_style(void* ctx) {
   }
 }
 
-void lxb_css_property_compute_font_stretch(void* ctx) {
+void lxb_style_property_compute_font_stretch(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_font_stretch_t* p;
@@ -645,7 +547,7 @@ void lxb_css_property_compute_font_stretch(void* ctx) {
   }
 }
 
-void lxb_css_property_compute_line_height(void* ctx) {
+void lxb_style_property_compute_line_height(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_line_height_t* p;
@@ -675,7 +577,7 @@ void lxb_css_property_compute_line_height(void* ctx) {
   }
 }
 
-void lxb_css_property_compute_width(void* ctx) {
+void lxb_style_property_compute_width(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   lxb_style_computed_value_t initial;
@@ -689,7 +591,7 @@ void lxb_css_property_compute_width(void* ctx) {
   lxb_style_compute_edge_value(c, &c->style->box->width, decl->u.width, &c->parent->box->width, decl->type, initial);
 }
 
-void lxb_css_property_compute_height(void* ctx) {
+void lxb_style_property_compute_height(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   lxb_style_computed_value_t initial;
@@ -703,7 +605,7 @@ void lxb_css_property_compute_height(void* ctx) {
   lxb_style_compute_edge_value(c, &c->style->box->height, decl->u.height, &c->parent->box->height, decl->type, initial);
 }
 
-void lxb_css_property_compute_min_width(void* ctx) {
+void lxb_style_property_compute_min_width(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   lxb_style_computed_value_t initial;
@@ -717,7 +619,7 @@ void lxb_css_property_compute_min_width(void* ctx) {
   lxb_style_compute_edge_value(c, &c->style->box->min_width, decl->u.width, &c->parent->box->min_width, decl->type, initial);
 }
 
-void lxb_css_property_compute_min_height(void* ctx) {
+void lxb_style_property_compute_min_height(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   lxb_style_computed_value_t initial;
@@ -731,7 +633,7 @@ void lxb_css_property_compute_min_height(void* ctx) {
   lxb_style_compute_edge_value(c, &c->style->box->min_height, decl->u.width, &c->parent->box->min_height, decl->type, initial);
 }
 
-void lxb_css_property_compute_max_width(void* ctx) {
+void lxb_style_property_compute_max_width(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   lxb_style_computed_value_t initial;
@@ -745,7 +647,7 @@ void lxb_css_property_compute_max_width(void* ctx) {
   lxb_style_compute_edge_value(c, &c->style->box->max_width, decl->u.width, &c->parent->box->max_width, decl->type, initial);
 }
 
-void lxb_css_property_compute_max_height(void* ctx) {
+void lxb_style_property_compute_max_height(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   lxb_style_computed_value_t initial;
@@ -761,7 +663,7 @@ void lxb_css_property_compute_max_height(void* ctx) {
 
 #define LXB_STYLE_COMPUTE_INSET(name, prop_id, member, edge)                                                                      \
   void                                                                                                                            \
-  lxb_css_property_compute_##name(void* ctx) {                                                                                    \
+  lxb_style_property_compute_##name(void* ctx) {                                                                                  \
     lxb_style_compute_ctx_t* c = ctx;                                                                                             \
     const lxb_css_rule_declaration_t* decl;                                                                                       \
     lxb_style_computed_value_t initial;                                                                                           \
@@ -782,7 +684,7 @@ LXB_STYLE_COMPUTE_INSET(left, LXB_CSS_PROPERTY_LEFT, left, LXB_STYLE_EDGE_LEFT)
 
 #undef LXB_STYLE_COMPUTE_INSET
 
-void lxb_css_property_compute_margin(void* ctx) {
+void lxb_style_property_compute_margin(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_margin_t* p;
@@ -803,7 +705,7 @@ void lxb_css_property_compute_margin(void* ctx) {
 
 #define LXB_STYLE_COMPUTE_EDGE(name, prop_id, member, field, edge, init)                                                                 \
   void                                                                                                                                   \
-  lxb_css_property_compute_##name(void* ctx) {                                                                                           \
+  lxb_style_property_compute_##name(void* ctx) {                                                                                         \
     lxb_style_compute_ctx_t* c = ctx;                                                                                                    \
     const lxb_css_rule_declaration_t* decl;                                                                                              \
                                                                                                                                          \
@@ -828,7 +730,7 @@ LXB_STYLE_COMPUTE_EDGE(margin_left, LXB_CSS_PROPERTY_MARGIN_LEFT, margin_left,
                        margin, LXB_STYLE_EDGE_LEFT,
                        lxb_style_compute_value_length(0.0))
 
-void lxb_css_property_compute_padding(void* ctx) {
+void lxb_style_property_compute_padding(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_padding_t* p;
@@ -862,7 +764,7 @@ LXB_STYLE_COMPUTE_EDGE(padding_left, LXB_CSS_PROPERTY_PADDING_LEFT, padding_left
 
 #undef LXB_STYLE_COMPUTE_EDGE
 
-void lxb_css_property_compute_border(void* ctx) {
+void lxb_style_property_compute_border(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   size_t i;
@@ -879,7 +781,7 @@ void lxb_css_property_compute_border(void* ctx) {
 
 #define LXB_STYLE_COMPUTE_BORDER(name, prop_id, member, edge)                                                                          \
   void                                                                                                                                 \
-  lxb_css_property_compute_##name(void* ctx) {                                                                                         \
+  lxb_style_property_compute_##name(void* ctx) {                                                                                       \
     lxb_style_compute_ctx_t* c = ctx;                                                                                                  \
     const lxb_css_rule_declaration_t* decl;                                                                                            \
                                                                                                                                        \
@@ -904,7 +806,7 @@ LXB_STYLE_COMPUTE_BORDER(border_left, LXB_CSS_PROPERTY_BORDER_LEFT, border_left,
 
 #define LXB_STYLE_COMPUTE_BORDER_COLOR(name, prop_id, member, edge)                                                      \
   void                                                                                                                   \
-  lxb_css_property_compute_##name(void* ctx) {                                                                           \
+  lxb_style_property_compute_##name(void* ctx) {                                                                         \
     lxb_style_compute_ctx_t* c = ctx;                                                                                    \
     const lxb_css_rule_declaration_t* decl;                                                                              \
     const lxb_css_value_color_t* p;                                                                                      \
@@ -944,7 +846,7 @@ LXB_STYLE_COMPUTE_BORDER_COLOR(border_left_color,
 
 #undef LXB_STYLE_COMPUTE_BORDER_COLOR
 
-void lxb_css_property_compute_overflow_x(void* ctx) {
+void lxb_style_property_compute_overflow_x(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_overflow_x_t* p;
@@ -967,7 +869,7 @@ void lxb_css_property_compute_overflow_x(void* ctx) {
   }
 }
 
-void lxb_css_property_compute_overflow_y(void* ctx) {
+void lxb_style_property_compute_overflow_y(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_overflow_y_t* p;
@@ -990,7 +892,7 @@ void lxb_css_property_compute_overflow_y(void* ctx) {
   }
 }
 
-void lxb_css_property_compute_opacity(void* ctx) {
+void lxb_style_property_compute_opacity(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_opacity_t* p;
@@ -1019,7 +921,7 @@ void lxb_css_property_compute_opacity(void* ctx) {
   }
 }
 
-void lxb_css_property_compute_z_index(void* ctx) {
+void lxb_style_property_compute_z_index(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_z_index_t* p;
@@ -1045,7 +947,7 @@ void lxb_css_property_compute_z_index(void* ctx) {
   }
 }
 
-void lxb_css_property_compute_text_align(void* ctx) {
+void lxb_style_property_compute_text_align(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_text_align_t* p;
@@ -1070,7 +972,7 @@ void lxb_css_property_compute_text_align(void* ctx) {
   }
 }
 
-void lxb_css_property_compute_white_space(void* ctx) {
+void lxb_style_property_compute_white_space(void* ctx) {
   lxb_style_compute_ctx_t* c = ctx;
   const lxb_css_rule_declaration_t* decl;
   const lxb_css_property_white_space_t* p;

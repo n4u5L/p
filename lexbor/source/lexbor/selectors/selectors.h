@@ -13,6 +13,7 @@ extern "C" {
 #endif
 
 #include "lexbor/selectors/base.h"
+#include "lexbor/selectors/selector_filter.h"
 #include "lexbor/dom/dom.h"
 #include "lexbor/css/selectors/selectors.h"
 #include "lexbor/core/array_obj.h"
@@ -75,10 +76,12 @@ struct lxb_selectors_entry {
     lxb_css_selector_combinator_t combinator;
     const lxb_css_selector_t      *selector;
     lxb_dom_node_t                *node;
+    lxb_selectors_filter_hashes_t filter_hashes;
     lxb_selectors_entry_t         *next;
     lxb_selectors_entry_t         *prev;
     lxb_selectors_entry_t         *following;
     lxb_selectors_nested_t        *nested;
+    bool                          filter_hashes_ready;
 };
 
 struct lxb_selectors_nested {
@@ -102,6 +105,7 @@ struct lxb_selectors {
     lxb_selectors_state_cb_f state;
     lexbor_dobject_t         *objs;
     lexbor_dobject_t         *nested;
+    lxb_selectors_filter_t   *filter;
 
     lxb_selectors_nested_t   *current;
 

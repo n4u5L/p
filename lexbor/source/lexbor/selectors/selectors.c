@@ -59,6 +59,14 @@ static lxb_selectors_entry_t *
 lxb_selectors_make_following_forward(lxb_selectors_t *selectors,
                                      lxb_selectors_entry_t *entry);
 
+static bool
+lxb_selectors_filter_entry_rejected(lxb_selectors_t *selectors,
+                                    lxb_selectors_entry_t *entry);
+
+static lxb_selectors_entry_t *
+lxb_selectors_skip_rejected(lxb_selectors_t *selectors,
+                            lxb_selectors_entry_t *entry);
+
 static lxb_selectors_entry_t *
 lxb_selectors_state_after_find(lxb_selectors_t *selectors,
                                lxb_selectors_entry_t *entry);
@@ -170,6 +178,16 @@ lxb_selectors_init(lxb_selectors_t *selectors)
         return status;
     }
 
+    selectors->filter = lxb_selectors_filter_create();
+    if (selectors->filter == NULL) {
+        return LXB_STATUS_ERROR_MEMORY_ALLOCATION;
+    }
+
+    status = lxb_selectors_filter_init(selectors->filter);
+    if (status != LXB_STATUS_OK) {
+        return status;
+    }
+
     selectors->options = LXB_SELECTORS_OPT_DEFAULT;
 
     return LXB_STATUS_OK;
@@ -180,6 +198,7 @@ lxb_selectors_clean(lxb_selectors_t *selectors)
 {
     lexbor_dobject_clean(selectors->objs);
     lexbor_dobject_clean(selectors->nested);
+    lxb_selectors_filter_clean(selectors->filter);
 }
 
 lxb_selectors_t *
@@ -191,6 +210,7 @@ lxb_selectors_destroy(lxb_selectors_t *selectors, bool self_destroy)
 
     selectors->objs = lexbor_dobject_destroy(selectors->objs, true);
     selectors->nested = lexbor_dobject_destroy(selectors->nested, true);
+    selectors->filter = lxb_selectors_filter_destroy(selectors->filter, true);
 
     if (self_destroy) {
         return lexbor_free(selectors);
@@ -605,6 +625,13 @@ lxb_selectors_match_node(lxb_selectors_t *selectors, lxb_dom_node_t *node,
     selectors->current = &nested;
     selectors->status = LXB_STATUS_OK;
 
+    status = lxb_selectors_filter_initialize_parent_stack(selectors->filter,
+                                                          node->parent);
+    if (status != LXB_STATUS_OK) {
+        lxb_selectors_clean(selectors);
+        return status;
+    }
+
     status = lxb_selectors_run(selectors, node);
 
     lxb_selectors_clean(selectors);
@@ -641,6 +668,13 @@ lxb_selectors_tree(lxb_selectors_t *selectors, lxb_dom_node_t *root)
         goto out;
     }
 
+    status = lxb_selectors_filter_initialize_parent_stack(selectors->filter,
+                                                          node->parent);
+    if (status != LXB_STATUS_OK) {
+        lxb_selectors_clean(selectors);
+        return status;
+    }
+
     do {
         if (node->type != LXB_DOM_NODE_TYPE_ELEMENT) {
             goto next;
@@ -658,6 +692,13 @@ lxb_selectors_tree(lxb_selectors_t *selectors, lxb_dom_node_t *root)
         }
 
         if (node->first_child != NULL) {
+            status = lxb_selectors_filter_push_parent(selectors->filter,
+                                                 lxb_dom_interface_element(node));
+            if (status != LXB_STATUS_OK) {
+                lxb_selectors_clean(selectors);
+                return status;
+            }
+
             node = node->first_child;
         }
         else {
@@ -671,6 +712,9 @@ lxb_selectors_tree(lxb_selectors_t *selectors, lxb_dom_node_t *root)
             if (node == root) {
                 break;
             }
+
+            lxb_selectors_filter_pop_parents_until(selectors->filter,
+                                                   node->parent);
 
             node = node->next;
         }
@@ -693,6 +737,15 @@ lxb_selectors_run(lxb_selectors_t *selectors, lxb_dom_node_t *node)
 
     entry->node = node;
     current->root = node;
+
+    entry = lxb_selectors_skip_rejected(selectors, entry);
+    if (entry == NULL) {
+        current->first = current->top;
+        current->entry = current->top;
+
+        return selectors->status;
+    }
+
     selectors->state = lxb_selectors_state_find;
 
     do {
@@ -1065,7 +1118,9 @@ lxb_selectors_next_list(lxb_selectors_t *selectors,
      * Try the following selectors from the selector list.
      */
 
-    return lxb_selectors_make_following(selectors, entry);
+    return lxb_selectors_skip_rejected(selectors,
+                                       lxb_selectors_make_following(selectors,
+                                                                    entry));
 }
 
 static lxb_selectors_entry_t *
@@ -1154,6 +1209,41 @@ lxb_selectors_make_following_forward(lxb_selectors_t *selectors,
     current->entry = next;
 
     return next;
+}
+
+static bool
+lxb_selectors_filter_entry_rejected(lxb_selectors_t *selectors,
+                                    lxb_selectors_entry_t *entry)
+{
+    if (selectors->filter == NULL || selectors->current->parent != NULL) {
+        return false;
+    }
+
+    if (!entry->filter_hashes_ready) {
+        entry->filter_hashes =
+            lxb_selectors_filter_collect_hashes(entry->selector);
+        entry->filter_hashes_ready = true;
+    }
+
+    return lxb_selectors_filter_fast_reject(selectors->filter,
+                                           &entry->filter_hashes);
+}
+
+static lxb_selectors_entry_t *
+lxb_selectors_skip_rejected(lxb_selectors_t *selectors,
+                            lxb_selectors_entry_t *entry)
+{
+    while (entry != NULL
+           && lxb_selectors_filter_entry_rejected(selectors, entry))
+    {
+        if (entry->selector->list->next == NULL) {
+            return NULL;
+        }
+
+        entry = lxb_selectors_make_following(selectors, entry);
+    }
+
+    return entry;
 }
 
 static lxb_selectors_entry_t *
