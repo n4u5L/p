@@ -40,7 +40,8 @@ typedef struct layout_tree_builder_created_node {
 static const lxb_style_computed_t*
 layout_tree_builder_node_style(lxb_dom_node_t* node) {
   return (const lxb_style_computed_t*)
-      lxb_dom_interface_element(node)->computed_style;
+      lxb_dom_interface_element(node)
+          ->computed_style;
 }
 
 static bool
@@ -122,7 +123,7 @@ layout_tree_builder_create_block(layout_t* layout, layout_object_t* object) {
 static bool
 layout_tree_builder_object_is_anonymous_block(layout_object_t* object) {
   return object != NULL
-      && (object->bitfields & LAYOUT_OBJECT_INTERNAL_ANONYMOUS_BLOCK) != 0;
+         && (object->bitfields & LAYOUT_OBJECT_INTERNAL_ANONYMOUS_BLOCK) != 0;
 }
 
 static bool
@@ -144,7 +145,7 @@ layout_tree_builder_decision_release(layout_tree_builder_decision_t* decision) {
     return;
   }
 
-  lxb_style_computed_unref((lxb_style_computed_t*) decision->style);
+  lxb_style_computed_unref((lxb_style_computed_t*)decision->style);
   decision->style = NULL;
   decision->owns_style = false;
 }
@@ -170,7 +171,7 @@ layout_tree_builder_text_style(lxb_dom_node_t* node,
 
   parent_style = parent->object->style;
   stop_node = parent->node;
-  for (lxb_dom_node_t* ancestor = layout_tree_traversal_parent(node);
+  for (lxb_dom_node_t* ancestor = node->parent;
        ancestor != NULL && ancestor != stop_node;
        ancestor = layout_tree_traversal_parent(ancestor)) {
     const lxb_style_computed_t* style;
@@ -294,7 +295,8 @@ layout_tree_builder_create_anonymous_block(layout_tree_t* tree,
   if (layout_object_child_list_insert_before(&parent->block->children,
                                              parent->object,
                                              object,
-                                             before_child) != LXB_STATUS_OK) {
+                                             before_child)
+      != LXB_STATUS_OK) {
     return NULL;
   }
 
@@ -320,7 +322,8 @@ layout_tree_builder_add_child_to_block(layout_tree_t* tree,
     if (layout_object_child_list_insert_before(&parent->block->children,
                                                parent->object,
                                                child->object,
-                                               before_child) != LXB_STATUS_OK) {
+                                               before_child)
+        != LXB_STATUS_OK) {
       return NULL;
     }
 
@@ -333,13 +336,14 @@ layout_tree_builder_add_child_to_block(layout_tree_t* tree,
     if (before_child == anonymous->object) {
       anonymous_before_child = anonymous->block->children.first_child;
     } else if (layout_tree_builder_object_is_descendant_of(
-                   before_child, anonymous->object)) {
+                   before_child,
+                   anonymous->object)) {
       anonymous_before_child = before_child;
     }
   } else {
     last_child = before_child == NULL
-        ? parent->block->children.last_child
-        : layout_tree_builder_child_before(parent, before_child);
+                     ? parent->block->children.last_child
+                     : layout_tree_builder_child_before(parent, before_child);
     if (before_child == NULL
         && layout_tree_builder_object_is_anonymous_block(last_child)) {
       anonymous = layout_tree_node_for_object(tree, last_child);
@@ -348,8 +352,7 @@ layout_tree_builder_add_child_to_block(layout_tree_t* tree,
       anonymous = layout_tree_node_for_object(tree, last_child);
     } else {
       anonymous =
-          layout_tree_builder_create_anonymous_block(tree, parent, child_style,
-                                                     before_child);
+          layout_tree_builder_create_anonymous_block(tree, parent, child_style, before_child);
     }
   }
 
@@ -396,8 +399,7 @@ layout_tree_builder_decide_node(layout_tree_node_t* parent,
     }
   } else if (layout_tree_builder_text_object_is_needed(dom_node, parent)) {
     lxb_status_t status =
-        layout_tree_builder_text_style(dom_node, parent, &decision.style,
-                                       &decision.owns_style);
+        layout_tree_builder_text_style(dom_node, parent, &decision.style, &decision.owns_style);
     if (status != LXB_STATUS_OK) {
       return status;
     }
@@ -425,9 +427,7 @@ layout_tree_builder_create_layout_node(
 
   memset(out_created, 0, sizeof(*out_created));
 
-  object = layout_dom_node_create_layout_object(tree->layout, dom_node,
-                                                decision.style,
-                                                decision.internal_bits);
+  object = layout_dom_node_create_layout_object(tree->layout, dom_node, decision.style, decision.internal_bits);
   if (object == NULL) {
     return LXB_STATUS_ERROR_MEMORY_ALLOCATION;
   }
@@ -470,7 +470,7 @@ layout_tree_builder_place_layout_node(
     return LXB_STATUS_ERROR_OBJECT_IS_NULL;
   }
 
-  (void) decision;
+  (void)decision;
   tree = context->tree;
   parent = context->parent;
   node = created->node;
@@ -494,9 +494,7 @@ layout_tree_builder_place_layout_node(
     next_layout_object =
         layout_tree_builder_next_layout_object(tree, node->node);
     layout_parent =
-        layout_tree_builder_add_child_to_block(tree, parent, node,
-                                               layout_object_style(node->object),
-                                               next_layout_object);
+        layout_tree_builder_add_child_to_block(tree, parent, node, layout_object_style(node->object), next_layout_object);
     if (layout_parent == NULL) {
       return LXB_STATUS_ERROR_MEMORY_ALLOCATION;
     }
@@ -558,16 +556,14 @@ layout_tree_builder_attach_current(
   }
 
   is_tree_root = context->parent == NULL && tree->root_object == NULL;
-  status = layout_tree_builder_create_layout_node(tree, dom_node, decision,
-                                                  is_tree_root, &created);
+  status = layout_tree_builder_create_layout_node(tree, dom_node, decision, is_tree_root, &created);
   layout_tree_builder_decision_release(&decision);
   if (status != LXB_STATUS_OK) {
     return status;
   }
 
   out_result->node = created.node;
-  return layout_tree_builder_place_layout_node(context, &created, decision,
-                                               out_result);
+  return layout_tree_builder_place_layout_node(context, &created, decision, out_result);
 }
 
 lxb_status_t
@@ -598,10 +594,9 @@ layout_tree_builder_attach_subtree(layout_tree_t* tree, lxb_dom_node_t* node,
   }
 
   for (lxb_dom_node_t* child = layout_tree_traversal_first_layout_child(node);
-       child != NULL; child = layout_tree_traversal_next_layout_sibling(child)) {
-    status = layout_tree_builder_attach_subtree(tree, child,
-                                                result.children_parent,
-                                                reject_existing_record);
+       child != NULL;
+       child = layout_tree_traversal_next_layout_sibling(child)) {
+    status = layout_tree_builder_attach_subtree(tree, child, result.children_parent, reject_existing_record);
     if (status != LXB_STATUS_OK) {
       return status;
     }
