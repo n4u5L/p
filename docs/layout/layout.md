@@ -1,13 +1,14 @@
 # layout 模块
 dom和layoutobject的生命周期绑定
 
-## DOM 槽语义
-`lxb_dom_node_t::layout_object` 是布局层专用槽。  
-它不同于 `node->user`：
-- `user` 仍保留给外部集成或调试用途。
-- `layout_object` 只保存 `layout_object_t *`。
-- clone/copy DOM node 时不能继承该指针，新节点必须重新 attach。
-- layout/core 销毁或清理时必须清掉仍指向本 layout 的 DOM 槽。
+## LayoutObject
+LayoutText LayoutInline LayoutBlock LayoutBlockFlow LayoutFlexibleBox LayoutGrid LayoutImage LayoutSVGRoot LayoutHTMLCanvas LayoutTable
+
+## Fragment
+isCssBox: !isLineBox && !isFragmentainerBox  
+const ComputedStyle& Style() const {
+    return layout_object_->EffectiveStyle(GetStyleVariant());
+}
 
 ## 重要方法
 ```c
@@ -25,16 +26,3 @@ layout_dom_node_detach_layout_tree(lxb_dom_node_t *node);
 void
 layout_dom_node_detach_layout_subtree(lxb_dom_node_t *root_node);
 ```
-
-后序遍历 detach 整个 DOM subtree。DOM 移除、`display:none` 生效、文档销毁前清理
-应走这个入口。
-
-## layout_tree_build 的使用方式
-
-`layout_tree_build(tree, root_node)` 不再盲目创建新 layout object。它应：
-
-1. 从 DOM node 读取 computed style。
-2. 对 `display:none` 调用 `layout_dom_node_detach_layout_subtree()` 并跳过 subtree。
-3. 对 `display:contents` 调用 `layout_dom_node_detach_layout_tree()`，继续处理子节点。
-4. 对普通可渲染 element 调用 `layout_dom_node_ensure_layout_object()`。
-5. 复用 DOM node 已持有的对象，并由 tree builder 重新建立本次 layout tree 的 parent/sibling/child-list 关系。

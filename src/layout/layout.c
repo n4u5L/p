@@ -158,34 +158,82 @@ layout_object_init_fragment_data(layout_object_t* object) {
 }
 
 static bool
-layout_result_next_fragment_index_for_object(layout_result_t* result,
-                                             layout_object_t* object,
-                                             uint32_t* out_index) {
-  layout_fragment_index_counter_t* counters;
-  size_t capacity;
-
-  if (out_index == NULL) {
+layout_fragment_index_counter_uses_index(
+    const layout_fragment_index_counter_t* counter,
+    uint32_t index) {
+  if (counter == NULL) {
     return false;
   }
 
-  *out_index = 0;
+  for (size_t i = 0; i < counter->used_indexes_length; i++) {
+    if (counter->used_indexes[i] == index) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static bool
+layout_fragment_index_counter_add_used(layout_result_t* result,
+                                       layout_fragment_index_counter_t* counter,
+                                       uint32_t index) {
+  uint32_t* used_indexes;
+  size_t capacity;
+
+  if (result == NULL || result->arena == NULL || counter == NULL) {
+    return false;
+  }
+
+  if (layout_fragment_index_counter_uses_index(counter, index)) {
+    return false;
+  }
+
+  if (counter->used_indexes_length == counter->used_indexes_capacity) {
+    capacity = counter->used_indexes_capacity == 0
+                   ? 4
+                   : counter->used_indexes_capacity * 2;
+
+    if (counter->used_indexes == NULL) {
+      used_indexes = lexbor_mraw_calloc(result->arena,
+                                        capacity * sizeof(uint32_t));
+    } else {
+      used_indexes = lexbor_mraw_realloc(result->arena,
+                                         counter->used_indexes,
+                                         capacity * sizeof(uint32_t));
+    }
+
+    if (used_indexes == NULL) {
+      return false;
+    }
+
+    counter->used_indexes = used_indexes;
+    counter->used_indexes_capacity = capacity;
+  }
+
+  counter->used_indexes[counter->used_indexes_length] = index;
+  counter->used_indexes_length++;
+
+  return true;
+}
+
+static layout_fragment_index_counter_t*
+layout_result_fragment_index_counter_for_object(layout_result_t* result,
+                                                layout_object_t* object,
+                                                uint32_t role) {
+  layout_fragment_index_counter_t* counters;
+  size_t capacity;
 
   if (result == NULL || result->arena == NULL || object == NULL) {
-    return false;
+    return NULL;
   }
 
   for (size_t i = 0; i < result->fragment_index_counters_length; i++) {
     layout_fragment_index_counter_t* counter =
         &result->fragment_index_counters[i];
 
-    if (counter->object == object) {
-      if (counter->next_index == UINT32_MAX) {
-        return false;
-      }
-
-      *out_index = counter->next_index;
-      counter->next_index++;
-      return true;
+    if (counter->object == object && counter->role == role) {
+      return counter;
     }
   }
 
@@ -206,7 +254,7 @@ layout_result_next_fragment_index_for_object(layout_result_t* result,
     }
 
     if (counters == NULL) {
-      return false;
+      return NULL;
     }
 
     result->fragment_index_counters = counters;
@@ -214,8 +262,75 @@ layout_result_next_fragment_index_for_object(layout_result_t* result,
   }
 
   result->fragment_index_counters[result->fragment_index_counters_length].object = object;
-  result->fragment_index_counters[result->fragment_index_counters_length].next_index = 1;
+  result->fragment_index_counters[result->fragment_index_counters_length].role = role;
+  result->fragment_index_counters[result->fragment_index_counters_length].next_index = 0;
   result->fragment_index_counters_length++;
+
+  return &result->fragment_index_counters[result->fragment_index_counters_length - 1];
+}
+
+static bool
+layout_result_next_fragment_index_for_object(layout_result_t* result,
+                                             layout_object_t* object,
+                                             uint32_t role,
+                                             uint32_t* out_index) {
+  layout_fragment_index_counter_t* counter;
+
+  if (out_index == NULL) {
+    return false;
+  }
+
+  *out_index = 0;
+
+  counter = layout_result_fragment_index_counter_for_object(result, object,
+                                                           role);
+  if (counter == NULL) {
+    return false;
+  }
+
+  while (layout_fragment_index_counter_uses_index(counter,
+                                                 counter->next_index)) {
+    if (counter->next_index == UINT32_MAX) {
+      return false;
+    }
+
+    counter->next_index++;
+  }
+
+  *out_index = counter->next_index;
+  if (!layout_fragment_index_counter_add_used(result, counter, *out_index)) {
+    return false;
+  }
+
+  if (counter->next_index != UINT32_MAX) {
+    counter->next_index++;
+  }
+
+  return true;
+}
+
+static bool
+layout_result_reserve_fragment_index_for_object(layout_result_t* result,
+                                                layout_object_t* object,
+                                                uint32_t role,
+                                                uint32_t index) {
+  layout_fragment_index_counter_t* counter;
+
+  counter = layout_result_fragment_index_counter_for_object(result, object,
+                                                           role);
+  if (counter == NULL) {
+    return false;
+  }
+
+  if (!layout_fragment_index_counter_add_used(result, counter, index)) {
+    return false;
+  }
+
+  if (index == UINT32_MAX) {
+    counter->next_index = UINT32_MAX;
+  } else if (counter->next_index <= index) {
+    counter->next_index = index + 1;
+  }
 
   return true;
 }
@@ -3334,6 +3449,7 @@ layout_fragment_create(layout_result_t* result,
                        const layout_fragment_init_t* init) {
   layout_fragment_t* fragment;
   uint32_t fragment_index;
+  layout_fragment_role_t role;
 
   if (result == NULL || result->fragments == NULL || init == NULL || init->object == NULL) {
     return NULL;
@@ -3343,7 +3459,18 @@ layout_fragment_create(layout_result_t* result,
     return NULL;
   }
 
-  if (!layout_result_next_fragment_index_for_object(result, init->object, &fragment_index)) {
+  role = init->role == LAYOUT_FRAGMENT_ROLE_AUTO
+             ? layout_fragment_default_role(init->object, init->box_type)
+             : init->role;
+
+  if (init->has_stable_ordinal) {
+    fragment_index = init->stable_ordinal;
+    if (!layout_result_reserve_fragment_index_for_object(
+            result, init->object, (uint32_t)role, fragment_index)) {
+      return NULL;
+    }
+  } else if (!layout_result_next_fragment_index_for_object(
+                 result, init->object, (uint32_t)role, &fragment_index)) {
     return NULL;
   }
 
@@ -3357,9 +3484,7 @@ layout_fragment_create(layout_result_t* result,
   fragment->size = init->size;
   fragment->type = init->type;
   fragment->box_type = init->box_type;
-  fragment->role = init->role == LAYOUT_FRAGMENT_ROLE_AUTO
-                       ? layout_fragment_default_role(init->object, init->box_type)
-                       : init->role;
+  fragment->role = role;
   fragment->key.object_id = layout_object_id(init->object);
   fragment->key.fragment_index = fragment_index;
   fragment->key.role = (uint32_t)fragment->role;
@@ -3417,6 +3542,8 @@ layout_fragment_clone_subtree_internal(layout_result_t* result,
   init.type = source_fragment->type;
   init.box_type = source_fragment->box_type;
   init.role = source_fragment->role;
+  init.has_stable_ordinal = true;
+  init.stable_ordinal = source_fragment->key.fragment_index;
   init.flags = source_fragment->flags & ~LAYOUT_FRAGMENT_CHILDREN_VALID;
   init.stacking_order = source_fragment->stacking_order;
   init.transform = source_fragment->transform;
@@ -3429,6 +3556,8 @@ layout_fragment_clone_subtree_internal(layout_result_t* result,
   if (clone == NULL) {
     return LXB_STATUS_ERROR_MEMORY_ALLOCATION;
   }
+
+  clone->key = source_fragment->key;
 
   for (size_t i = 0; i < source_fragment->children_length; i++) {
     layout_fragment_link_t* source_link = &source_fragment->children[i];

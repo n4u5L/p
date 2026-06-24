@@ -213,6 +213,8 @@ typedef struct {
   layout_fragment_type_t type;
   layout_fragment_box_type_t box_type;
   layout_fragment_role_t role;
+  bool has_stable_ordinal;
+  uint32_t stable_ordinal;
   unsigned flags;
   int stacking_order;
   layout_transform_t transform;

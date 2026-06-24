@@ -11,6 +11,7 @@ PointerAlignment: Left
 AlignConsecutiveAssignments: None
 
 BreakBeforeBraces: Attach
+BreakBeforeBinaryOperators: NonAssignment
 BreakTemplateDeclarations: Yes
 BreakConstructorInitializers: BeforeColon
 PackConstructorInitializers: Never

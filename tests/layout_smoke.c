@@ -691,6 +691,24 @@ make_fragment_with_stacking_order(layout_result_t *result,
 }
 
 static layout_fragment_t *
+make_fragment_with_ordinal(layout_result_t *result, layout_object_t *object,
+                           double width, double height, uint32_t ordinal)
+{
+    layout_fragment_init_t init;
+
+    memset(&init, 0, sizeof(init));
+    init.object = object;
+    init.size.width = width;
+    init.size.height = height;
+    init.type = LAYOUT_FRAGMENT_BOX;
+    init.box_type = LAYOUT_FRAGMENT_BOX_NORMAL;
+    init.has_stable_ordinal = true;
+    init.stable_ordinal = ordinal;
+
+    return layout_fragment_create(result, &init);
+}
+
+static layout_fragment_t *
 make_fragment_with_flags(layout_result_t *result, layout_object_t *object,
                          double width, double height, unsigned flags)
 {
@@ -4959,12 +4977,18 @@ physical_fragment_retained_identity_smoke(layout_t *layout,
     layout_fragment_t *second_child_fragment;
     layout_fragment_t *embed_fragment;
     layout_fragment_t *next_child_fragment;
+    layout_fragment_t *stable_child_fragment;
+    layout_fragment_t *auto_after_stable_fragment;
+    layout_fragment_t *duplicate_stable_fragment;
+    layout_fragment_t *cloned_stable_fragment = NULL;
     layout_fragment_link_t *first_link;
     layout_fragment_link_t *second_link;
     layout_fragment_link_t *embed_link;
     layout_fragment_key_t root_key;
     layout_fragment_key_t first_key;
     layout_fragment_key_t second_key;
+    layout_fragment_key_t stable_key;
+    layout_fragment_key_t auto_after_stable_key;
     layout_fragment_init_t init;
 
     check(next_result != NULL, "next retained identity result allocates");
@@ -5019,6 +5043,23 @@ physical_fragment_retained_identity_smoke(layout_t *layout,
               == LAYOUT_FRAGMENT_ROLE_NATIVE_EMBED,
           "native embed host fragment gets native embed role by default");
 
+    stable_child_fragment =
+        make_fragment_with_ordinal(result, child, 26.0, 16.0, 4);
+    auto_after_stable_fragment = make_fragment(result, child, 18.0, 14.0);
+    duplicate_stable_fragment =
+        make_fragment_with_ordinal(result, child, 10.0, 10.0, 4);
+    stable_key = layout_fragment_key(stable_child_fragment);
+    auto_after_stable_key = layout_fragment_key(auto_after_stable_fragment);
+    check(stable_child_fragment != NULL
+              && stable_key.fragment_index == 4
+              && stable_key.ordinal == 4,
+          "fragment init can provide stable semantic ordinal");
+    check(auto_after_stable_fragment != NULL
+              && auto_after_stable_key.fragment_index > stable_key.fragment_index,
+          "automatic fragment ordinal skips explicit stable ordinals");
+    check(duplicate_stable_fragment == NULL,
+          "duplicate stable ordinal for same object and role is rejected");
+
     check(layout_fragment_append_child(root_fragment, first_child_fragment,
                                        make_point(10.0, 10.0))
               == LXB_STATUS_OK,
@@ -5062,6 +5103,17 @@ physical_fragment_retained_identity_smoke(layout_t *layout,
                      == LAYOUT_FRAGMENT_ROLE_PSEUDO
               && second_key.role == LAYOUT_FRAGMENT_ROLE_PSEUDO,
           "fragment init can override role for pseudo/future fragments");
+
+    check(layout_result_set_root_fragment(result, root_fragment)
+              == LXB_STATUS_OK,
+          "retained identity stores root fragment for clone smoke");
+    freeze_result(result);
+    cloned_stable_fragment =
+        layout_fragment_clone_subtree(next_result, stable_child_fragment);
+    check(cloned_stable_fragment != NULL
+              && fragment_key_equal(layout_fragment_key(cloned_stable_fragment),
+                                    stable_key),
+          "cloned fragment subtree preserves retained fragment key");
 
     layout_result_destroy(next_result, true);
 }
@@ -6288,6 +6340,148 @@ done:
 }
 
 static void
+layout_scene_plan_stable_multi_fragment_key_smoke(layout_t *layout)
+{
+    layout_result_t *old_result = layout_result_create(layout);
+    layout_result_t *new_result = layout_result_create(layout);
+    layout_object_t *root = make_object(layout);
+    layout_object_t *fragmented = make_object(layout);
+    layout_fragment_t *old_root;
+    layout_fragment_t *old_first;
+    layout_fragment_t *old_second;
+    layout_fragment_t *new_root;
+    layout_fragment_t *new_second;
+    layout_fragment_t *new_first;
+    layout_scene_plan_t *old_plan = NULL;
+    layout_scene_plan_t *new_plan = NULL;
+    layout_scene_diff_t *diff = NULL;
+    size_t keep_count = 0;
+    size_t move_count = 0;
+    size_t insert_count = 0;
+    size_t remove_count = 0;
+    size_t update_count = 0;
+    bool saw_first_key = false;
+    bool saw_second_key = false;
+
+    check(old_result != NULL && new_result != NULL,
+          "stable multi-fragment diff results allocate");
+    if (old_result == NULL || new_result == NULL) {
+        goto done;
+    }
+
+    old_root = make_fragment(old_result, root, 200.0, 120.0);
+    old_first = make_fragment_with_ordinal(old_result, fragmented,
+                                           40.0, 20.0, 0);
+    old_second = make_fragment_with_ordinal(old_result, fragmented,
+                                            50.0, 20.0, 1);
+    check(old_root != NULL && old_first != NULL && old_second != NULL,
+          "stable multi-fragment old fragments allocate");
+    check(layout_fragment_append_child(old_root, old_first,
+                                       make_point(0.0, 0.0))
+              == LXB_STATUS_OK,
+          "stable multi-fragment old appends first");
+    check(layout_fragment_append_child(old_root, old_second,
+                                       make_point(50.0, 0.0))
+              == LXB_STATUS_OK,
+          "stable multi-fragment old appends second");
+    check(layout_result_set_root_fragment(old_result, old_root)
+              == LXB_STATUS_OK,
+          "stable multi-fragment old stores root");
+    freeze_result(old_result);
+
+    new_root = make_fragment(new_result, root, 200.0, 120.0);
+    new_second = make_fragment_with_ordinal(new_result, fragmented,
+                                            55.0, 20.0, 1);
+    new_first = make_fragment_with_ordinal(new_result, fragmented,
+                                           40.0, 20.0, 0);
+    check(new_root != NULL && new_first != NULL && new_second != NULL,
+          "stable multi-fragment new fragments allocate reversed");
+    check(fragment_key_equal(layout_fragment_key(old_first),
+                             layout_fragment_key(new_first))
+              && fragment_key_equal(layout_fragment_key(old_second),
+                                    layout_fragment_key(new_second)),
+          "stable multi-fragment keys survive reversed creation order");
+    check(layout_fragment_append_child(new_root, new_second,
+                                       make_point(50.0, 0.0))
+              == LXB_STATUS_OK,
+          "stable multi-fragment new appends second first");
+    check(layout_fragment_append_child(new_root, new_first,
+                                       make_point(0.0, 0.0))
+              == LXB_STATUS_OK,
+          "stable multi-fragment new appends first second");
+    check(layout_result_set_root_fragment(new_result, new_root)
+              == LXB_STATUS_OK,
+          "stable multi-fragment new stores root");
+    freeze_result(new_result);
+
+    old_plan = layout_scene_plan_create(layout);
+    new_plan = layout_scene_plan_create(layout);
+    diff = layout_scene_diff_create();
+    check(old_plan != NULL && new_plan != NULL && diff != NULL,
+          "stable multi-fragment plans allocate");
+    if (old_plan == NULL || new_plan == NULL || diff == NULL) {
+        goto done;
+    }
+
+    check(layout_scene_plan_build(old_plan, old_result) == LXB_STATUS_OK,
+          "stable multi-fragment old plan builds");
+    check(layout_scene_plan_build(new_plan, new_result) == LXB_STATUS_OK,
+          "stable multi-fragment new plan builds");
+    check(layout_scene_plan_diff(old_plan, new_plan, diff) == LXB_STATUS_OK,
+          "stable multi-fragment diff runs");
+
+    for (size_t i = 0; i < layout_scene_diff_patch_count(diff); i++) {
+        const layout_scene_patch_t *patch = layout_scene_diff_patch_at(diff,
+                                                                       i);
+        layout_fragment_key_t patch_key = layout_scene_patch_key(patch);
+
+        switch (layout_scene_patch_op(patch)) {
+        case LAYOUT_SCENE_PATCH_KEEP:
+            keep_count++;
+            break;
+        case LAYOUT_SCENE_PATCH_MOVE:
+            move_count++;
+            if (fragment_key_equal(patch_key, layout_fragment_key(new_first))) {
+                saw_first_key = true;
+            }
+            if (fragment_key_equal(patch_key, layout_fragment_key(new_second))) {
+                saw_second_key = true;
+            }
+            break;
+        case LAYOUT_SCENE_PATCH_INSERT:
+            insert_count++;
+            break;
+        case LAYOUT_SCENE_PATCH_REMOVE:
+            remove_count++;
+            break;
+        case LAYOUT_SCENE_PATCH_UPDATE:
+            update_count++;
+            if (fragment_key_equal(patch_key, layout_fragment_key(new_first))) {
+                saw_first_key = true;
+            }
+            if (fragment_key_equal(patch_key, layout_fragment_key(new_second))) {
+                saw_second_key = true;
+            }
+            break;
+        }
+    }
+
+    check(insert_count == 0 && remove_count == 0,
+          "stable multi-fragment diff avoids remove/insert churn");
+    check(keep_count == 1 && move_count == 2 && update_count == 0,
+          "stable multi-fragment diff retains both reordered fragments");
+    check(saw_first_key && saw_second_key,
+          "stable multi-fragment diff patches both stable keys");
+
+done:
+    layout_scene_diff_destroy(diff, true);
+    layout_scene_plan_destroy(new_plan, true);
+    layout_scene_plan_destroy(old_plan, true);
+    layout_result_destroy(new_result, true);
+    layout_result_destroy(old_result, true);
+}
+
+static void
 overflow_clip_smoke(layout_t *layout, layout_result_t *result)
 {
     layout_object_t *root = make_object(layout);
@@ -6923,6 +7117,7 @@ main(void)
     run_layout_result_smoke(layout_scene_plan_nested_stacking_context_oof_smoke);
     run_layout_result_smoke(layout_scene_node_stacking_context_smoke);
     run_layout_smoke(layout_scene_plan_diff_smoke);
+    run_layout_smoke(layout_scene_plan_stable_multi_fragment_key_smoke);
     run_layout_result_smoke(overflow_clip_smoke);
     run_layout_result_smoke(transform_smoke);
     run_layout_result_smoke(layout_result_boundary_smoke);

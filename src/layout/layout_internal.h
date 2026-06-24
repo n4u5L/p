@@ -28,7 +28,11 @@
 
 typedef struct layout_fragment_index_counter {
   layout_object_t* object;
+  uint32_t role;
   uint32_t next_index;
+  uint32_t* used_indexes;
+  size_t used_indexes_length;
+  size_t used_indexes_capacity;
 } layout_fragment_index_counter_t;
 
 struct layout {
@@ -234,22 +238,11 @@ layout_tree_builder_attach_subtree(layout_tree_t* tree, lxb_dom_node_t* node,
                                    bool reject_existing_record);
 
 lxb_dom_node_t*
-layout_tree_traversal_parent(lxb_dom_node_t* node);
-
-lxb_dom_node_t*
 layout_tree_traversal_layout_parent(lxb_dom_node_t* node);
 
-lxb_dom_node_t*
-layout_tree_traversal_first_child(lxb_dom_node_t* node);
+bool layout_tree_traversal_node_is_display_none(lxb_dom_node_t* node);
 
-lxb_dom_node_t*
-layout_tree_traversal_next_sibling(lxb_dom_node_t* node);
-
-bool
-layout_tree_traversal_node_is_display_none(lxb_dom_node_t* node);
-
-bool
-layout_tree_traversal_node_is_display_contents(lxb_dom_node_t* node);
+bool layout_tree_traversal_node_is_display_contents(lxb_dom_node_t* node);
 
 lxb_dom_node_t*
 layout_tree_traversal_first_layout_child(lxb_dom_node_t* node);
@@ -262,35 +255,27 @@ layout_dom_node_create_layout_object(layout_t* layout, lxb_dom_node_t* node,
                                      const lxb_style_computed_t* style,
                                      unsigned internal_bits);
 
-void
-layout_tree_prepare_dom_node_for_attach(lxb_dom_node_t* node);
+void layout_tree_prepare_dom_node_for_attach(lxb_dom_node_t* node);
 
-void
-layout_object_update_style_derived_bits(layout_object_t* object);
+void layout_object_update_style_derived_bits(layout_object_t* object);
 
-void
-layout_object_unlink_from_siblings(layout_object_t* object);
+void layout_object_unlink_from_siblings(layout_object_t* object);
 
-void
-layout_object_init_fragment_data(layout_object_t* object);
+void layout_object_init_fragment_data(layout_object_t* object);
 
 layout_box_t*
 layout_box_create(layout_t* layout, layout_object_t* object);
 
-void
-layout_box_release_all_results(layout_t* layout);
+void layout_box_release_all_results(layout_t* layout);
 
-void
-layout_object_detach_box(layout_object_t* object);
+void layout_object_detach_box(layout_object_t* object);
 
-void
-layout_object_set_internal_type_bits(layout_object_t* object,
-                                     unsigned internal_bits);
+void layout_object_set_internal_type_bits(layout_object_t* object,
+                                          unsigned internal_bits);
 
 lxb_status_t
 layout_lifecycle_mark_update_pending(layout_t* layout);
 
-void
-layout_lifecycle_abort_update(layout_t* layout);
+void layout_lifecycle_abort_update(layout_t* layout);
 
 #endif /* LAYOUT_INTERNAL_H */
