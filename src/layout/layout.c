@@ -126,9 +126,8 @@ layout_lifecycle_advance_to_clean(layout_t* layout,
 static layout_result_t*
 layout_result_destroy_storage(layout_result_t* result, bool destroy_self);
 
-void
-layout_object_set_internal_type_bits(layout_object_t* object,
-                                     unsigned internal_bits) {
+void layout_object_set_internal_type_bits(layout_object_t* object,
+                                          unsigned internal_bits) {
   if (object == NULL) {
     return;
   }
@@ -146,8 +145,7 @@ layout_object_establishes_absolute_cb(layout_object_t* object) {
   return layout_object_can_contain_absolute_position(object);
 }
 
-void
-layout_object_init_fragment_data(layout_object_t* object) {
+void layout_object_init_fragment_data(layout_object_t* object) {
   if (object == NULL) {
     return;
   }
@@ -282,14 +280,13 @@ layout_result_next_fragment_index_for_object(layout_result_t* result,
 
   *out_index = 0;
 
-  counter = layout_result_fragment_index_counter_for_object(result, object,
-                                                           role);
+  counter = layout_result_fragment_index_counter_for_object(result, object, role);
   if (counter == NULL) {
     return false;
   }
 
   while (layout_fragment_index_counter_uses_index(counter,
-                                                 counter->next_index)) {
+                                                  counter->next_index)) {
     if (counter->next_index == UINT32_MAX) {
       return false;
     }
@@ -316,8 +313,7 @@ layout_result_reserve_fragment_index_for_object(layout_result_t* result,
                                                 uint32_t index) {
   layout_fragment_index_counter_t* counter;
 
-  counter = layout_result_fragment_index_counter_for_object(result, object,
-                                                           role);
+  counter = layout_result_fragment_index_counter_for_object(result, object, role);
   if (counter == NULL) {
     return false;
   }
@@ -386,8 +382,7 @@ layout_fragment_default_role(layout_object_t* object,
   return LAYOUT_FRAGMENT_ROLE_NORMAL;
 }
 
-void
-layout_object_unlink_from_siblings(layout_object_t* object) {
+void layout_object_unlink_from_siblings(layout_object_t* object) {
   if (object == NULL) {
     return;
   }
@@ -463,8 +458,7 @@ layout_object_display_none(layout_object_t* object) {
   return non_inherited->display_box == LXB_CSS_DISPLAY_NONE || non_inherited->display_outside == LXB_CSS_DISPLAY_NONE || non_inherited->display_inside == LXB_CSS_DISPLAY_NONE;
 }
 
-void
-layout_object_update_style_derived_bits(layout_object_t* object) {
+void layout_object_update_style_derived_bits(layout_object_t* object) {
   lxb_css_position_type_t position;
 
   if (object == NULL) {
@@ -619,8 +613,7 @@ layout_object_release_styles(layout_t* layout) {
   }
 }
 
-void
-layout_tree_prepare_dom_node_for_attach(lxb_dom_node_t* node) {
+void layout_tree_prepare_dom_node_for_attach(lxb_dom_node_t* node) {
   layout_object_t* object = layout_dom_node_layout_object(node);
 
   if (object == NULL) {
@@ -1509,9 +1502,7 @@ layout_hit_test_fragment_local(layout_result_t* result,
     return NULL;
   }
 
-  if (layout_object_hit_clip_axes(fragment->object, &clip) && !layout_rect_contains(layout_fragment_local_rect_unsafe(fragment),
-                                                                                    local_point,
-                                                                                    clip)) {
+  if (layout_object_hit_clip_axes(fragment->object, &clip) && !layout_rect_contains(layout_fragment_local_rect_unsafe(fragment), local_point, clip)) {
     return NULL;
   }
 
@@ -1626,28 +1617,28 @@ layout_create(void) {
 const char*
 layout_lifecycle_state_name(layout_lifecycle_state_t state) {
   switch (state) {
-    case LAYOUT_LIFECYCLE_UNINITIALIZED:
-      return "UNINITIALIZED";
-    case LAYOUT_LIFECYCLE_INACTIVE:
-      return "INACTIVE";
-    case LAYOUT_LIFECYCLE_UPDATE_PENDING:
-      return "UPDATE_PENDING";
-    case LAYOUT_LIFECYCLE_IN_STYLE_RECALC:
-      return "IN_STYLE_RECALC";
-    case LAYOUT_LIFECYCLE_STYLE_CLEAN:
-      return "STYLE_CLEAN";
-    case LAYOUT_LIFECYCLE_IN_LAYOUT:
-      return "IN_LAYOUT";
-    case LAYOUT_LIFECYCLE_LAYOUT_CLEAN:
-      return "LAYOUT_CLEAN";
-    case LAYOUT_LIFECYCLE_IN_SCENE_PLAN:
-      return "IN_SCENE_PLAN";
-    case LAYOUT_LIFECYCLE_SCENE_PLAN_CLEAN:
-      return "SCENE_PLAN_CLEAN";
-    case LAYOUT_LIFECYCLE_STOPPING:
-      return "STOPPING";
-    case LAYOUT_LIFECYCLE_STOPPED:
-      return "STOPPED";
+  case LAYOUT_LIFECYCLE_UNINITIALIZED:
+    return "UNINITIALIZED";
+  case LAYOUT_LIFECYCLE_INACTIVE:
+    return "INACTIVE";
+  case LAYOUT_LIFECYCLE_UPDATE_PENDING:
+    return "UPDATE_PENDING";
+  case LAYOUT_LIFECYCLE_IN_STYLE_RECALC:
+    return "IN_STYLE_RECALC";
+  case LAYOUT_LIFECYCLE_STYLE_CLEAN:
+    return "STYLE_CLEAN";
+  case LAYOUT_LIFECYCLE_IN_LAYOUT:
+    return "IN_LAYOUT";
+  case LAYOUT_LIFECYCLE_LAYOUT_CLEAN:
+    return "LAYOUT_CLEAN";
+  case LAYOUT_LIFECYCLE_IN_SCENE_PLAN:
+    return "IN_SCENE_PLAN";
+  case LAYOUT_LIFECYCLE_SCENE_PLAN_CLEAN:
+    return "SCENE_PLAN_CLEAN";
+  case LAYOUT_LIFECYCLE_STOPPING:
+    return "STOPPING";
+  case LAYOUT_LIFECYCLE_STOPPED:
+    return "STOPPED";
   }
 
   return "UNKNOWN";
@@ -1659,61 +1650,55 @@ layout_lifecycle_state(layout_t* layout) {
                         : layout->lifecycle_state;
 }
 
-bool
-layout_lifecycle_is_active(layout_t* layout) {
+bool layout_lifecycle_is_active(layout_t* layout) {
   layout_lifecycle_state_t state = layout_lifecycle_state(layout);
 
   return state > LAYOUT_LIFECYCLE_INACTIVE
-      && state < LAYOUT_LIFECYCLE_STOPPING;
+         && state < LAYOUT_LIFECYCLE_STOPPING;
 }
 
-bool
-layout_lifecycle_allows_tree_mutations(layout_t* layout) {
+bool layout_lifecycle_allows_tree_mutations(layout_t* layout) {
   layout_lifecycle_state_t state = layout_lifecycle_state(layout);
 
   return state != LAYOUT_LIFECYCLE_IN_STYLE_RECALC
-      && state != LAYOUT_LIFECYCLE_IN_LAYOUT
-      && state != LAYOUT_LIFECYCLE_IN_SCENE_PLAN;
+         && state != LAYOUT_LIFECYCLE_IN_LAYOUT
+         && state != LAYOUT_LIFECYCLE_IN_SCENE_PLAN;
 }
 
-bool
-layout_lifecycle_allows_layout_tree_mutations(layout_t* layout) {
+bool layout_lifecycle_allows_layout_tree_mutations(layout_t* layout) {
   if (layout == NULL) {
     return false;
   }
 
   return layout->detach_count != 0
-      || layout->lifecycle_state == LAYOUT_LIFECYCLE_IN_STYLE_RECALC;
+         || layout->lifecycle_state == LAYOUT_LIFECYCLE_IN_STYLE_RECALC;
 }
 
-bool
-layout_lifecycle_allows_detach(layout_t* layout) {
+bool layout_lifecycle_allows_detach(layout_t* layout) {
   layout_lifecycle_state_t state = layout_lifecycle_state(layout);
 
   return state == LAYOUT_LIFECYCLE_INACTIVE
-      || state == LAYOUT_LIFECYCLE_UPDATE_PENDING
-      || state == LAYOUT_LIFECYCLE_IN_STYLE_RECALC
-      || state == LAYOUT_LIFECYCLE_STYLE_CLEAN
-      || state == LAYOUT_LIFECYCLE_LAYOUT_CLEAN
-      || state == LAYOUT_LIFECYCLE_SCENE_PLAN_CLEAN
-      || state == LAYOUT_LIFECYCLE_STOPPING;
+         || state == LAYOUT_LIFECYCLE_UPDATE_PENDING
+         || state == LAYOUT_LIFECYCLE_IN_STYLE_RECALC
+         || state == LAYOUT_LIFECYCLE_STYLE_CLEAN
+         || state == LAYOUT_LIFECYCLE_LAYOUT_CLEAN
+         || state == LAYOUT_LIFECYCLE_SCENE_PLAN_CLEAN
+         || state == LAYOUT_LIFECYCLE_STOPPING;
 }
 
-bool
-layout_lifecycle_is_postponed(layout_t* layout) {
+bool layout_lifecycle_is_postponed(layout_t* layout) {
   return layout != NULL && layout->lifecycle_postponed;
 }
 
-bool
-layout_lifecycle_in_detach(layout_t* layout) {
+bool layout_lifecycle_in_detach(layout_t* layout) {
   return layout != NULL && layout->detach_count != 0;
 }
 
 static bool
 layout_lifecycle_state_can_rewind(layout_lifecycle_state_t state) {
   return state == LAYOUT_LIFECYCLE_STYLE_CLEAN
-      || state == LAYOUT_LIFECYCLE_LAYOUT_CLEAN
-      || state == LAYOUT_LIFECYCLE_SCENE_PLAN_CLEAN;
+         || state == LAYOUT_LIFECYCLE_LAYOUT_CLEAN
+         || state == LAYOUT_LIFECYCLE_SCENE_PLAN_CLEAN;
 }
 
 static bool
@@ -1731,41 +1716,41 @@ layout_lifecycle_can_advance(layout_t* layout,
 
   state = layout->lifecycle_state;
   switch (state) {
-    case LAYOUT_LIFECYCLE_UNINITIALIZED:
-      return next_state == LAYOUT_LIFECYCLE_INACTIVE;
-    case LAYOUT_LIFECYCLE_INACTIVE:
-      return next_state == LAYOUT_LIFECYCLE_UPDATE_PENDING
-          || next_state == LAYOUT_LIFECYCLE_IN_STYLE_RECALC
-          || next_state == LAYOUT_LIFECYCLE_STYLE_CLEAN;
-    case LAYOUT_LIFECYCLE_UPDATE_PENDING:
-      return next_state == LAYOUT_LIFECYCLE_IN_STYLE_RECALC
-          || next_state == LAYOUT_LIFECYCLE_IN_LAYOUT;
-    case LAYOUT_LIFECYCLE_IN_STYLE_RECALC:
-      return next_state == LAYOUT_LIFECYCLE_STYLE_CLEAN;
-    case LAYOUT_LIFECYCLE_STYLE_CLEAN:
-      return next_state == LAYOUT_LIFECYCLE_STYLE_CLEAN
-          || next_state == LAYOUT_LIFECYCLE_IN_STYLE_RECALC
-          || next_state == LAYOUT_LIFECYCLE_IN_LAYOUT
-          || next_state == LAYOUT_LIFECYCLE_LAYOUT_CLEAN
-          || next_state == LAYOUT_LIFECYCLE_IN_SCENE_PLAN;
-    case LAYOUT_LIFECYCLE_IN_LAYOUT:
-      return next_state == LAYOUT_LIFECYCLE_LAYOUT_CLEAN;
-    case LAYOUT_LIFECYCLE_LAYOUT_CLEAN:
-      return next_state == LAYOUT_LIFECYCLE_LAYOUT_CLEAN
-          || next_state == LAYOUT_LIFECYCLE_IN_STYLE_RECALC
-          || next_state == LAYOUT_LIFECYCLE_IN_LAYOUT
-          || next_state == LAYOUT_LIFECYCLE_STYLE_CLEAN
-          || next_state == LAYOUT_LIFECYCLE_IN_SCENE_PLAN;
-    case LAYOUT_LIFECYCLE_IN_SCENE_PLAN:
-      return next_state == LAYOUT_LIFECYCLE_SCENE_PLAN_CLEAN;
-    case LAYOUT_LIFECYCLE_SCENE_PLAN_CLEAN:
-      return next_state == LAYOUT_LIFECYCLE_IN_STYLE_RECALC
-          || next_state == LAYOUT_LIFECYCLE_IN_LAYOUT
-          || next_state == LAYOUT_LIFECYCLE_IN_SCENE_PLAN;
-    case LAYOUT_LIFECYCLE_STOPPING:
-      return next_state == LAYOUT_LIFECYCLE_STOPPED;
-    case LAYOUT_LIFECYCLE_STOPPED:
-      return false;
+  case LAYOUT_LIFECYCLE_UNINITIALIZED:
+    return next_state == LAYOUT_LIFECYCLE_INACTIVE;
+  case LAYOUT_LIFECYCLE_INACTIVE:
+    return next_state == LAYOUT_LIFECYCLE_UPDATE_PENDING
+           || next_state == LAYOUT_LIFECYCLE_IN_STYLE_RECALC
+           || next_state == LAYOUT_LIFECYCLE_STYLE_CLEAN;
+  case LAYOUT_LIFECYCLE_UPDATE_PENDING:
+    return next_state == LAYOUT_LIFECYCLE_IN_STYLE_RECALC
+           || next_state == LAYOUT_LIFECYCLE_IN_LAYOUT;
+  case LAYOUT_LIFECYCLE_IN_STYLE_RECALC:
+    return next_state == LAYOUT_LIFECYCLE_STYLE_CLEAN;
+  case LAYOUT_LIFECYCLE_STYLE_CLEAN:
+    return next_state == LAYOUT_LIFECYCLE_STYLE_CLEAN
+           || next_state == LAYOUT_LIFECYCLE_IN_STYLE_RECALC
+           || next_state == LAYOUT_LIFECYCLE_IN_LAYOUT
+           || next_state == LAYOUT_LIFECYCLE_LAYOUT_CLEAN
+           || next_state == LAYOUT_LIFECYCLE_IN_SCENE_PLAN;
+  case LAYOUT_LIFECYCLE_IN_LAYOUT:
+    return next_state == LAYOUT_LIFECYCLE_LAYOUT_CLEAN;
+  case LAYOUT_LIFECYCLE_LAYOUT_CLEAN:
+    return next_state == LAYOUT_LIFECYCLE_LAYOUT_CLEAN
+           || next_state == LAYOUT_LIFECYCLE_IN_STYLE_RECALC
+           || next_state == LAYOUT_LIFECYCLE_IN_LAYOUT
+           || next_state == LAYOUT_LIFECYCLE_STYLE_CLEAN
+           || next_state == LAYOUT_LIFECYCLE_IN_SCENE_PLAN;
+  case LAYOUT_LIFECYCLE_IN_SCENE_PLAN:
+    return next_state == LAYOUT_LIFECYCLE_SCENE_PLAN_CLEAN;
+  case LAYOUT_LIFECYCLE_SCENE_PLAN_CLEAN:
+    return next_state == LAYOUT_LIFECYCLE_IN_STYLE_RECALC
+           || next_state == LAYOUT_LIFECYCLE_IN_LAYOUT
+           || next_state == LAYOUT_LIFECYCLE_IN_SCENE_PLAN;
+  case LAYOUT_LIFECYCLE_STOPPING:
+    return next_state == LAYOUT_LIFECYCLE_STOPPED;
+  case LAYOUT_LIFECYCLE_STOPPED:
+    return false;
   }
 
   return false;
@@ -1857,11 +1842,11 @@ layout_lifecycle_mark_update_pending(layout_t* layout) {
   }
 
   return layout_lifecycle_ensure_state_at_most(
-      layout, LAYOUT_LIFECYCLE_UPDATE_PENDING);
+      layout,
+      LAYOUT_LIFECYCLE_UPDATE_PENDING);
 }
 
-void
-layout_lifecycle_abort_update(layout_t* layout) {
+void layout_lifecycle_abort_update(layout_t* layout) {
   if (layout == NULL) {
     return;
   }
@@ -1889,7 +1874,8 @@ layout_lifecycle_advance_to_clean(layout_t* layout,
       && layout->lifecycle_state < LAYOUT_LIFECYCLE_STYLE_CLEAN) {
     if (layout->lifecycle_state != LAYOUT_LIFECYCLE_IN_STYLE_RECALC) {
       status = layout_lifecycle_advance_to(
-          layout, LAYOUT_LIFECYCLE_IN_STYLE_RECALC);
+          layout,
+          LAYOUT_LIFECYCLE_IN_STYLE_RECALC);
       if (status != LXB_STATUS_OK) {
         return false;
       }
@@ -1930,7 +1916,8 @@ layout_lifecycle_advance_to_clean(layout_t* layout,
     }
 
     status = layout_lifecycle_advance_to(
-        layout, LAYOUT_LIFECYCLE_SCENE_PLAN_CLEAN);
+        layout,
+        LAYOUT_LIFECYCLE_SCENE_PLAN_CLEAN);
     if (status != LXB_STATUS_OK) {
       return false;
     }
@@ -1999,8 +1986,7 @@ layout_lifecycle_end_disallow_transition(layout_t* layout) {
   return LXB_STATUS_OK;
 }
 
-void
-layout_lifecycle_set_postponed(layout_t* layout, bool postponed) {
+void layout_lifecycle_set_postponed(layout_t* layout, bool postponed) {
   if (layout == NULL) {
     return;
   }
@@ -2178,7 +2164,7 @@ layout_result_destroy(layout_result_t* result, bool destroy_self) {
 
   if (result->ref_count > 1) {
     result->destroy_self_on_zero = destroy_self;
-    (void) layout_result_unref(result);
+    (void)layout_result_unref(result);
     return destroy_self ? NULL : result;
   }
 
@@ -2278,8 +2264,9 @@ layout_result_freeze(layout_result_t* result) {
 
   result->frozen = true;
   if (result->layout != NULL) {
-    (void) layout_lifecycle_advance_to_clean(
-        result->layout, LAYOUT_LIFECYCLE_LAYOUT_CLEAN);
+    (void)layout_lifecycle_advance_to_clean(
+        result->layout,
+        LAYOUT_LIFECYCLE_LAYOUT_CLEAN);
   }
 
   return LXB_STATUS_OK;
@@ -2590,66 +2577,48 @@ bool layout_object_is_anonymous(layout_object_t* object) {
 
 bool layout_object_is_box(layout_object_t* object) {
   return object != NULL
-      && object->box != NULL
-      && (object->bitfields & LAYOUT_OBJECT_INTERNAL_BOX) != 0;
+         && (object->bitfields & LAYOUT_OBJECT_INTERNAL_BOX) != 0;
 }
 
 layout_box_t*
 layout_object_box(layout_object_t* object) {
-  return layout_object_is_box(object) ? object->box : NULL;
+  return NULL;
 }
 
 layout_object_t*
 layout_box_object(layout_box_t* box) {
-  return box == NULL ? NULL : box->object;
+  return NULL;
 }
 
 layout_box_t*
 layout_box_create(layout_t* layout, layout_object_t* object) {
   layout_box_t* box;
 
-  if (layout == NULL || layout->boxes == NULL || object == NULL
-      || object->layout != layout) {
-    return NULL;
-  }
-
-  if (object->box != NULL && object->box->object == object) {
-    object->bitfields |= LAYOUT_OBJECT_INTERNAL_BOX;
-    return object->box;
-  }
-
-  box = lexbor_dobject_calloc(layout->boxes);
+  box = lexbor_dobject_calloc(layout->pool_box);
   if (box == NULL) {
     return NULL;
   }
 
-  box->object = object;
-  object->box = box;
   object->bitfields |= LAYOUT_OBJECT_INTERNAL_BOX;
 
   return box;
 }
 
-void
-layout_object_detach_box(layout_object_t* object) {
+void layout_object_detach_box(layout_object_t* object) {
   layout_box_t* box;
 
   if (object == NULL) {
     return;
   }
 
-  box = object->box;
   if (box != NULL) {
     layout_box_clear_layout_results(box);
-    box->object = NULL;
   }
 
-  object->box = NULL;
   object->bitfields &= ~LAYOUT_OBJECT_INTERNAL_BOX;
 }
 
-void
-layout_box_release_all_results(layout_t* layout) {
+void layout_box_release_all_results(layout_t* layout) {
   size_t length;
 
   if (layout == NULL || layout->boxes == NULL) {
@@ -2662,11 +2631,8 @@ layout_box_release_all_results(layout_t* layout) {
 
     if (box != NULL) {
       layout_box_clear_layout_results(box);
-      if (box->object != NULL && box->object->box == box) {
-        box->object->box = NULL;
-        box->object->bitfields &= ~LAYOUT_OBJECT_INTERNAL_BOX;
-      }
-      box->object = NULL;
+
+      box->object.bitfields &= ~LAYOUT_OBJECT_INTERNAL_BOX;
     }
   }
 }
@@ -2727,7 +2693,7 @@ layout_box_set_layout_result(layout_box_t* box,
     return LXB_STATUS_ERROR_OBJECT_IS_NULL;
   }
 
-  if (box->object == NULL || result->layout != box->object->layout) {
+  if (result->layout != box->object.layout) {
     return LXB_STATUS_ERROR_WRONG_ARGS;
   }
 
@@ -3466,11 +3432,17 @@ layout_fragment_create(layout_result_t* result,
   if (init->has_stable_ordinal) {
     fragment_index = init->stable_ordinal;
     if (!layout_result_reserve_fragment_index_for_object(
-            result, init->object, (uint32_t)role, fragment_index)) {
+            result,
+            init->object,
+            (uint32_t)role,
+            fragment_index)) {
       return NULL;
     }
   } else if (!layout_result_next_fragment_index_for_object(
-                 result, init->object, (uint32_t)role, &fragment_index)) {
+                 result,
+                 init->object,
+                 (uint32_t)role,
+                 &fragment_index)) {
     return NULL;
   }
 
@@ -4577,8 +4549,7 @@ layout_scene_node_diff_dirty(const layout_scene_node_t* old_node,
     dirty |= LAYOUT_SCENE_DIRTY_TRANSFORM | LAYOUT_SCENE_DIRTY_COMPOSITING;
   }
 
-  if (old_node->clip_axes != new_node->clip_axes || !layout_scene_rect_equal(old_node->clip_rect,
-                                                                             new_node->clip_rect)) {
+  if (old_node->clip_axes != new_node->clip_axes || !layout_scene_rect_equal(old_node->clip_rect, new_node->clip_rect)) {
     dirty |= LAYOUT_SCENE_DIRTY_CLIP | LAYOUT_SCENE_DIRTY_COMPOSITING;
   }
 
@@ -5891,8 +5862,7 @@ layout_result_fragment_rect_to_root(layout_result_t* result,
     return LXB_STATUS_ERROR_WRONG_ARGS;
   }
 
-  if (oof == NULL && !layout_fragment_path_can_traverse(result->root_fragment,
-                                                        target_fragment)) {
+  if (oof == NULL && !layout_fragment_path_can_traverse(result->root_fragment, target_fragment)) {
     return LXB_STATUS_ERROR_WRONG_ARGS;
   }
 

@@ -1,10 +1,10 @@
 #include "layout/layout_internal.h"
 
 #include <string.h>
+#include <assert.h>
 
 #include "lexbor/css/property/const.h"
-#include "lexbor/dom/interfaces/element.h"
-#include "lexbor/dom/interfaces/text.h"
+#include "lexbor/dom/interface.h"
 
 typedef enum {
   LAYOUT_TREE_BUILDER_SKIP_SELF,
@@ -18,7 +18,7 @@ typedef struct layout_tree_attach_context {
   bool reject_existing_record;
 } layout_tree_attach_context_t;
 
-typedef struct layout_tree_builder_decision {
+typedef struct {
   layout_tree_builder_action_t action;
   const lxb_style_computed_t* style;
   unsigned internal_bits;
@@ -26,73 +26,16 @@ typedef struct layout_tree_builder_decision {
   bool owns_style;
 } layout_tree_builder_decision_t;
 
-typedef struct layout_tree_attach_result {
+typedef struct {
   layout_tree_node_t* node;
   layout_tree_node_t* children_parent;
   bool should_traverse_children;
 } layout_tree_attach_result_t;
 
-typedef struct layout_tree_builder_created_node {
+typedef struct {
   layout_tree_node_t* node;
   layout_block_t* block;
 } layout_tree_builder_created_node_t;
-
-static const lxb_style_computed_t*
-layout_tree_builder_node_style(lxb_dom_node_t* node) {
-  return (const lxb_style_computed_t*)
-      lxb_dom_interface_element(node)
-          ->computed_style;
-}
-
-static bool
-layout_tree_builder_text_object_is_needed(lxb_dom_node_t* node,
-                                          layout_tree_node_t* parent) {
-  lxb_dom_text_t* text;
-
-  if (node == NULL || node->type != LXB_DOM_NODE_TYPE_TEXT || parent == NULL
-      || parent->block == NULL || parent->object == NULL) {
-    return false;
-  }
-
-  text = lxb_dom_interface_text(node);
-  return text->char_data.data.length != 0;
-}
-
-static bool
-layout_tree_builder_style_is_block_capable(
-    const lxb_style_computed_t* style) {
-  const lxb_style_computed_non_inherited_t* non_inherited;
-
-  if (style == NULL) {
-    return false;
-  }
-
-  non_inherited = style->non_inherited;
-  if (non_inherited == NULL) {
-    return false;
-  }
-
-  if (non_inherited->display_outside == LXB_CSS_DISPLAY_BLOCK
-      || non_inherited->display_inside == LXB_CSS_DISPLAY_FLOW_ROOT
-      || non_inherited->display_inside == LXB_CSS_DISPLAY_FLEX
-      || non_inherited->display_inside == LXB_CSS_DISPLAY_GRID
-      || non_inherited->display_inside == LXB_CSS_DISPLAY_TABLE
-      || non_inherited->display_list_item) {
-    return true;
-  }
-
-  switch (non_inherited->display_box) {
-  case LXB_CSS_DISPLAY_BLOCK:
-  case LXB_CSS_DISPLAY_INLINE_BLOCK:
-  case LXB_CSS_DISPLAY_INLINE_TABLE:
-  case LXB_CSS_DISPLAY_INLINE_FLEX:
-  case LXB_CSS_DISPLAY_INLINE_GRID:
-    return true;
-
-  default:
-    return false;
-  }
-}
 
 static layout_block_t*
 layout_tree_builder_create_block(layout_t* layout, layout_object_t* object) {
@@ -113,7 +56,7 @@ layout_tree_builder_create_block(layout_t* layout, layout_object_t* object) {
     return NULL;
   }
 
-  block->box = box;
+  // block->box = box;
   object->bitfields |= LAYOUT_OBJECT_INTERNAL_BLOCK;
   layout_object_child_list_init(&block->children);
 
@@ -173,14 +116,14 @@ layout_tree_builder_text_style(lxb_dom_node_t* node,
   stop_node = parent->node;
   for (lxb_dom_node_t* ancestor = node->parent;
        ancestor != NULL && ancestor != stop_node;
-       ancestor = layout_tree_traversal_parent(ancestor)) {
+       ancestor = ancestor->parent) {
     const lxb_style_computed_t* style;
 
-    if (!layout_tree_traversal_node_is_display_contents(ancestor)) {
+    if (!layout_internal_node_is_display_contents(ancestor)) {
       continue;
     }
 
-    style = layout_tree_builder_node_style(ancestor);
+    style = layout_internal_node_style(ancestor);
     if (style != NULL) {
       lxb_style_computed_t* wrapper_style =
           lxb_style_computed_create_initial(parent_style, style);
@@ -371,31 +314,71 @@ layout_tree_builder_add_child_to_block(layout_tree_t* tree,
   return anonymous;
 }
 
+static bool
+layout_tree_builder_style_is_block_capable(const lxb_style_computed_t* style) {
+  const lxb_style_computed_non_inherited_t* non_inherited;
+  non_inherited = style->non_inherited;
+  if (non_inherited == NULL) {
+    return false;
+  }
+
+  if (non_inherited->display_outside == LXB_CSS_DISPLAY_BLOCK
+      || non_inherited->display_inside == LXB_CSS_DISPLAY_FLOW_ROOT
+      || non_inherited->display_inside == LXB_CSS_DISPLAY_FLEX
+      || non_inherited->display_inside == LXB_CSS_DISPLAY_GRID
+      || non_inherited->display_inside == LXB_CSS_DISPLAY_TABLE
+      || non_inherited->display_list_item) {
+    return true;
+  }
+
+  switch (non_inherited->display_box) {
+  case LXB_CSS_DISPLAY_BLOCK:
+  case LXB_CSS_DISPLAY_INLINE_BLOCK:
+  case LXB_CSS_DISPLAY_INLINE_TABLE:
+  case LXB_CSS_DISPLAY_INLINE_FLEX:
+  case LXB_CSS_DISPLAY_INLINE_GRID:
+    return true;
+
+  default:
+    return false;
+  }
+}
+
+static bool
+layout_tree_builder_text_object_is_needed(lxb_dom_node_t* node,
+                                          layout_tree_node_t* parent) {
+  lxb_dom_text_t* text;
+
+  if (node->type != LXB_DOM_NODE_TYPE_TEXT || parent == NULL
+      || parent->block == NULL || parent->object == NULL) {
+    return false;
+  }
+
+  text = lxb_dom_interface_text(node);
+  return text->char_data.data.length != 0;
+}
+
 static lxb_status_t
 layout_tree_builder_decide_node(layout_tree_node_t* parent,
                                 lxb_dom_node_t* dom_node,
                                 layout_tree_builder_decision_t* out_decision) {
+  assert(dom_node && out_decision);
   layout_tree_builder_decision_t decision;
-
-  if (dom_node == NULL || out_decision == NULL) {
-    return LXB_STATUS_ERROR_OBJECT_IS_NULL;
-  }
 
   memset(&decision, 0, sizeof(decision));
   decision.action = LAYOUT_TREE_BUILDER_SKIP_SELF;
 
   if (dom_node->type == LXB_DOM_NODE_TYPE_ELEMENT) {
-    decision.style = layout_tree_builder_node_style(dom_node);
-    if (decision.style != NULL) {
-      if (layout_tree_traversal_node_is_display_none(dom_node)) {
-        decision.action = LAYOUT_TREE_BUILDER_SKIP_SUBTREE;
-      } else if (layout_tree_traversal_node_is_display_contents(dom_node)) {
-        decision.action = LAYOUT_TREE_BUILDER_SKIP_SELF;
-      } else {
-        decision.action = LAYOUT_TREE_BUILDER_ATTACH_OBJECT;
-        decision.can_have_children =
-            layout_tree_builder_style_is_block_capable(decision.style);
-      }
+    decision.style = layout_internal_node_style(dom_node);
+    assert(decision.style);
+    if (layout_internal_node_is_display_none(dom_node)) {
+      decision.action = LAYOUT_TREE_BUILDER_SKIP_SUBTREE;
+    } else if (layout_internal_node_is_display_contents(dom_node)) {
+      decision.action = LAYOUT_TREE_BUILDER_SKIP_SELF;
+    } else {
+      decision.action = LAYOUT_TREE_BUILDER_ATTACH_OBJECT;
+      decision.can_have_children =
+          layout_tree_builder_style_is_block_capable(decision.style);
     }
   } else if (layout_tree_builder_text_object_is_needed(dom_node, parent)) {
     lxb_status_t status =
@@ -570,14 +553,11 @@ lxb_status_t
 layout_tree_builder_attach_subtree(layout_tree_t* tree, lxb_dom_node_t* node,
                                    layout_tree_node_t* parent,
                                    bool reject_existing_record) {
+  assert(node);
   layout_tree_builder_decision_t decision;
   layout_tree_attach_context_t context;
   layout_tree_attach_result_t result;
   lxb_status_t status;
-
-  if (tree == NULL || node == NULL) {
-    return LXB_STATUS_ERROR_OBJECT_IS_NULL;
-  }
 
   status = layout_tree_builder_decide_node(parent, node, &decision);
   if (status != LXB_STATUS_OK) {

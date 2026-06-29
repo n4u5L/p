@@ -103,8 +103,7 @@ layout_tree_init(layout_tree_t* tree, layout_t* layout) {
     return LXB_STATUS_ERROR_MEMORY_ALLOCATION;
   }
 
-  status = lexbor_dobject_init(tree->nodes, LAYOUT_TREE_NODE_CHUNK,
-                               sizeof(layout_tree_node_t));
+  status = lexbor_dobject_init(tree->nodes, LAYOUT_TREE_NODE_CHUNK, sizeof(layout_tree_node_t));
   if (status != LXB_STATUS_OK) {
     layout_tree_destroy(tree, false);
     return status;
@@ -154,9 +153,9 @@ layout_tree_detach_skipped_subtree(lxb_dom_node_t* root_node) {
     return;
   }
 
-  display_none = layout_tree_traversal_node_is_display_none(root_node);
+  display_none = layout_internal_node_is_display_none(root_node);
   display_contents = !display_none
-      && layout_tree_traversal_node_is_display_contents(root_node);
+                     && layout_internal_node_is_display_contents(root_node);
 
   if (display_none) {
     layout_dom_node_detach_layout_subtree(root_node);
@@ -167,8 +166,7 @@ layout_tree_detach_skipped_subtree(lxb_dom_node_t* root_node) {
     layout_dom_node_detach_layout_tree(root_node);
   }
 
-  for (lxb_dom_node_t* child = layout_tree_traversal_first_child(root_node);
-       child != NULL; child = layout_tree_traversal_next_sibling(child)) {
+  for (lxb_dom_node_t* child = root_node->first_child; child; child = child->next) {
     layout_tree_detach_skipped_subtree(child);
   }
 }
@@ -307,8 +305,7 @@ void layout_dom_node_detach_layout_subtree(lxb_dom_node_t* root_node) {
     return;
   }
 
-  for (lxb_dom_node_t* child = layout_tree_traversal_first_child(root_node);
-       child != NULL; child = layout_tree_traversal_next_sibling(child)) {
+  for (lxb_dom_node_t* child = root_node->first_child; child; child = child->next) {
     layout_dom_node_detach_layout_subtree(child);
   }
 
@@ -399,8 +396,7 @@ layout_tree_object_next_in_preorder(layout_tree_t* tree,
     return child;
   }
 
-  return layout_tree_object_next_in_preorder_after_children(tree, object,
-                                                           stay_within);
+  return layout_tree_object_next_in_preorder_after_children(tree, object, stay_within);
 }
 
 layout_object_t*
@@ -494,7 +490,9 @@ layout_tree_object_previous_in_postorder(layout_tree_t* tree,
   }
 
   return layout_tree_object_previous_in_postorder_before_children(
-      tree, object, stay_within);
+      tree,
+      object,
+      stay_within);
 }
 
 lxb_status_t

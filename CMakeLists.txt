@@ -62,11 +62,12 @@ else()
 endif()
 
 add_library(layout_core STATIC
-    src/layout/layout.c
+    src/layout/layout_internal.h src/layout/layout_internal.c
+    src/layout/layout.h src/layout/layout.c
     src/layout/layout_tree.c
     src/layout/layout_tree_builder.c
     src/layout/layout_tree_traversal.c
-    src/layout/layout_algorithm.c
+    src/layout/layout_algorithm.h src/layout/layout_algorithm.c
 )
 target_include_directories(layout_core PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src"

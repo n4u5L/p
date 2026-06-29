@@ -36,9 +36,13 @@ typedef struct layout_fragment_index_counter {
 } layout_fragment_index_counter_t;
 
 struct layout {
-  lexbor_dobject_t* objects;
   lexbor_dobject_t* boxes;
   lexbor_dobject_t* blocks;
+  lexbor_dobject_t* pool_text;
+  lexbor_dobject_t* pool_box;
+  lexbor_dobject_t* pool_block;
+  lexbor_dobject_t* pool_block_flow;
+  lexbor_dobject_t* pool_grid;
   uint64_t identity_salt;
   uint64_t anonymous_identity_salt;
   uint64_t generation_salt;
@@ -64,66 +68,6 @@ struct layout_result {
   bool self_allocated;
   bool destroy_self_on_zero;
   bool frozen;
-};
-
-struct layout_box {
-  layout_object_t* object;
-  layout_result_t** layout_results;
-  size_t layout_results_length;
-  size_t layout_results_capacity;
-};
-
-typedef struct layout_block {
-  layout_box_t* box;
-  layout_object_child_list_t children;
-} layout_block_t;
-
-typedef struct layout_tree_node {
-  lxb_dom_node_t* node;
-  layout_object_t* object;
-  layout_block_t* block;
-} layout_tree_node_t;
-
-struct layout_tree {
-  layout_t* layout;
-  lexbor_dobject_t* nodes;
-  layout_object_t* root_object;
-};
-
-struct layout_oof_positioned {
-  layout_object_t* object;
-  layout_object_t* containing_block;
-  layout_fragment_t* containing_fragment;
-  layout_fragment_t* fragment;
-  layout_point_t offset;
-  int stacking_order;
-  layout_fragment_placement_t placement;
-  bool fixed_position;
-};
-
-struct layout_fragment_data {
-  unsigned flags;
-  layout_point_t paint_offset;
-};
-
-struct layout_fragment_data_list {
-  layout_fragment_data_t first;
-  size_t length;
-};
-
-struct layout_object {
-  layout_t* layout;
-  uint64_t id;
-  layout_object_t* parent;
-  layout_object_t* prev;
-  layout_object_t* next;
-  lxb_dom_node_t* node;
-  const lxb_style_computed_t* style;
-  layout_box_t* box;
-  layout_fragment_data_list_t fragment_data;
-  layout_native_embed_token_t native_embed_token;
-  unsigned bitfields;
-  unsigned dirty_bits;
 };
 
 struct layout_fragment {
@@ -152,6 +96,75 @@ struct layout_fragment_link {
   int stacking_order;
   size_t sequence;
   layout_fragment_placement_t placement;
+};
+
+struct layout_fragment_data {
+  unsigned flags;
+  layout_point_t paint_offset;
+};
+
+struct layout_fragment_data_list {
+  layout_fragment_data_t first;
+  size_t length;
+};
+struct layout_object {
+  layout_t* layout;
+  uint64_t id;
+  layout_object_t* parent;
+  layout_object_t* prev;
+  layout_object_t* next;
+  lxb_dom_node_t* node;
+  const lxb_style_computed_t* style;
+  layout_fragment_data_list_t fragment_data;
+  layout_native_embed_token_t native_embed_token;
+  unsigned bitfields;
+  unsigned dirty_bits;
+};
+/*
+struct layout_box_rare_data {
+  layout_size_t        previous_content_box_size;
+  layout_min_max_t     definite_intrinsic_cache;
+  double               override_containing_block_inline_size;
+  unsigned             flags;
+  };
+*/
+struct layout_box {
+  layout_object_t object;
+  layout_result_t** layout_results;
+  size_t layout_results_length;
+  size_t layout_results_capacity;
+  // layout_min_max_t  intrinsic_logical_widths;
+  // layout_box_overflow_t*   overflow;
+  // layout_box_rare_data_t*  rare;
+  unsigned box_flags;
+};
+
+typedef struct layout_block {
+  layout_box_t box;
+  layout_object_child_list_t children;
+} layout_block_t;
+
+typedef struct layout_tree_node {
+  lxb_dom_node_t* node;
+  layout_object_t* object;
+  layout_block_t* block;
+} layout_tree_node_t;
+
+struct layout_tree {
+  layout_t* layout;
+  lexbor_dobject_t* nodes;
+  layout_object_t* root_object;
+};
+
+struct layout_oof_positioned {
+  layout_object_t* object;
+  layout_object_t* containing_block;
+  layout_fragment_t* containing_fragment;
+  layout_fragment_t* fragment;
+  layout_point_t offset;
+  int stacking_order;
+  layout_fragment_placement_t placement;
+  bool fixed_position;
 };
 
 struct layout_scene_node {
@@ -222,8 +235,10 @@ struct layout_scene_diff {
   uint64_t new_generation;
 };
 
-layout_tree_node_t*
-layout_tree_node_for_object(layout_tree_t* tree, layout_object_t* object);
+const lxb_style_computed_t*
+layout_internal_node_style(lxb_dom_node_t* node) {
+  return (const lxb_style_computed_t*)((lxb_dom_element_t*)node)->computed_style;
+}
 
 layout_tree_node_t*
 layout_tree_node_for_dom_node(layout_tree_t* tree, lxb_dom_node_t* dom_node);
@@ -240,9 +255,9 @@ layout_tree_builder_attach_subtree(layout_tree_t* tree, lxb_dom_node_t* node,
 lxb_dom_node_t*
 layout_tree_traversal_layout_parent(lxb_dom_node_t* node);
 
-bool layout_tree_traversal_node_is_display_none(lxb_dom_node_t* node);
+bool layout_internal_node_is_display_none(lxb_dom_node_t* node);
 
-bool layout_tree_traversal_node_is_display_contents(lxb_dom_node_t* node);
+bool layout_internal_node_is_display_contents(lxb_dom_node_t* node);
 
 lxb_dom_node_t*
 layout_tree_traversal_first_layout_child(lxb_dom_node_t* node);
